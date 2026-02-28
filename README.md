@@ -6,21 +6,44 @@ MemX extends [mem0](https://github.com/mem0ai/mem0) with the **Adaptive Context 
 
 ---
 
-## MemX vs mem0: Key Differences
+## Why MemX: Local-First Intelligent Memory
 
-MemX is a **drop-in replacement** for mem0. All mem0 methods work identically when ACE is disabled. The table below highlights what MemX adds:
+mem0 是优秀的记忆框架，但它的核心流程**强依赖远程 LLM API**：每次 `add()` 都需要调用 LLM 提取事实、判断去重、决策更新。这意味着：
 
-| Capability | mem0 | MemX (ACE enabled) |
-|---|---|---|
-| **Knowledge Extraction** | LLM-based fact extraction on every `add()` (~2–5K tokens/call) | Rules-based Reflector (0 LLM calls, zero cost) |
-| **Deduplication** | LLM decides UPDATE/DELETE per record | Cosine similarity ≥ 0.8 → auto-merge (no LLM) |
-| **Forgetting** | None — memories persist forever | Exponential decay with half-life + recall boost |
-| **Search** | Pure vector similarity | 4-layer hybrid: exact + fuzzy + metadata + vector |
-| **Privacy** | No built-in PII sanitization | 12 hardcoded patterns (API keys, tokens, paths) + custom regex |
-| **Scope** | Flat (user_id / agent_id / run_id) | Hierarchical: `global`, `project:name`, `workspace:id` |
-| **Token Budget** | Caller manages result size | Built-in trimmer with CJK-aware token estimation |
-| **Local Embedding** | Requires external API | ONNX Runtime (all-MiniLM-L6-v2, fully offline) |
-| **CLI** | None | 10 commands: status, search, learn, list, forget, sweep, conflicts, export, import |
+- 每次写入消耗 **2–5K tokens**（约 $0.001–0.01/次），大量交互下成本快速累积
+- 离线环境（内网、本地开发、飞行模式）**完全无法工作**
+- 知识提取质量完全取决于远端 LLM，**无本地可控性**
+- 用户数据必须发送到云端 LLM，**隐私合规存在风险**
+
+MemX 的设计原则是 **Local-First**——所有核心能力（知识提炼、去重、衰退、检索）默认在本地完成，零外部依赖：
+
+| 能力 | mem0 | MemX (rules 模式) | MemX (llm/hybrid 模式) |
+|---|---|---|---|
+| **知识提取** | 每次 add() 调 LLM (~2–5K tokens) | 规则引擎，**0 API 调用** | LLM 语义评估 + 结构化蒸馏 |
+| **去重** | LLM 判断 UPDATE/DELETE | 余弦相似度 ≥ 0.8 自动合并 | 同左 |
+| **遗忘** | 无——记忆永久留存 | 指数衰退 + 召回强化 | 同左 |
+| **检索** | 纯向量相似度 | 4 层混合：精确 + 模糊 + 元数据 + 向量 | 同左 |
+| **隐私** | 无内置 PII 脱敏 | 12 种内置规则 + 自定义正则 | 同左 |
+| **离线能力** | 不可用 | **完全离线运行**（ONNX 嵌入） | 需 LLM API（失败自动降级到 rules） |
+| **每次写入成本** | ~$0.001–0.01 | **$0** | ~$0.0005（仅有价值的交互触发） |
+| **嵌入** | 需外部 API | ONNX Runtime 本地推理 | 同左 |
+| **作用域** | 扁平 (user_id / agent_id) | 层级：`global` / `project:name` / `workspace:id` | 同左 |
+| **Token 预算** | 调用方自行管理 | 内置裁剪器（CJK 感知） | 同左 |
+| **CLI** | 无 | 10 条命令 | 同左 |
+
+### 三种 Reflector 模式
+
+- **`rules`**（默认）：纯规则引擎，0 LLM 调用，0 成本，完全离线。适合高频写入、成本敏感、离线环境
+- **`llm`**：每次交互调用 LLM 做语义评估 + 知识蒸馏，产出 "When [条件], [动作], because [原因]" 结构化规则。适合低频高价值场景
+- **`hybrid`**（推荐）：规则预筛（过滤 70%+ 琐碎内容，0 成本） → LLM 精评命中候选 + 兜底捕获规则遗漏的隐性知识。**质量/成本最优平衡**
+
+```
+rules 模式:    InteractionEvent → 规则检测 → 规则评分 → 脱敏 → 规则蒸馏        (0 API calls)
+llm 模式:      InteractionEvent → LLM 评估 → 脱敏 → LLM 蒸馏               (1-2 API calls)
+hybrid 模式:   InteractionEvent → 规则预筛 → LLM 精评/兜底 → 脱敏 → LLM 蒸馏  (0-2 API calls)
+```
+
+> **核心优势：即使在 llm/hybrid 模式下，LLM 调用失败也会自动降级到 rules 模式——永远不会因为 API 故障而丢失数据。**
 
 ### Migration from mem0
 
@@ -65,14 +88,14 @@ results = m.search("pytest verbose", user_id="u1")
 
 ## Features
 
-- **Reflector** — auto-distill conversational noise into structured knowledge bullets (0 LLM calls)
-- **Curator** — semantic deduplication and conflict detection
-- **Decay** — time-based forgetting with configurable half-life curves
-- **Generator** — hybrid search combining vector, exact, fuzzy, and metadata matching
-- **Privacy** — PII sanitization with 12 built-in patterns + pluggable custom rules
-- **ONNX** — optional local embedding via ONNX Runtime (no API calls)
-- **CLI** — full command-line interface for inspecting and managing the knowledge base
-- **Daemon** — optional background process for multi-agent shared memory
+- **Reflector** — 3 模式知识蒸馏引擎（rules / llm / hybrid），自动将对话噪声提炼为结构化知识规则
+- **Curator** — 语义去重 + 冲突检测（Semantic / Negation）
+- **Decay** — 艾宾浩斯指数衰退 + 召回强化，模拟人类"用进废退"
+- **Generator** — 4 层混合检索（精确 + 模糊 + 元数据 + 向量）
+- **Privacy** — 12 种内置 PII 脱敏规则 + 可插拔自定义正则
+- **ONNX** — 本地嵌入推理（all-MiniLM-L6-v2），完全离线
+- **CLI** — 10 条命令管理知识库
+- **Daemon** — 可选后台进程，支持多 Agent 共享记忆
 
 ---
 
@@ -87,8 +110,11 @@ results = m.search("pytest verbose", user_id="u1")
 ## Installation
 
 ```bash
-# Core (requires mem0 backend)
+# Core — rules mode, 0 LLM calls, zero cost
 pip install memx
+
+# With LLM reflector (llm/hybrid modes via litellm)
+pip install memx[llm]
 
 # With ONNX local embeddings (no API key needed)
 pip install memx[onnx]
@@ -96,7 +122,7 @@ pip install memx[onnx]
 # With Neo4j graph support
 pip install memx[graph]
 
-# Everything
+# Everything (ONNX + LLM + graph)
 pip install memx[all]
 
 # Development
@@ -115,9 +141,12 @@ click >= 8.0
 
 | Extra | Packages | Purpose |
 |---|---|---|
+| `llm` | litellm >= 1.40 | LLM/hybrid Reflector mode (supports OpenAI, Anthropic, Deepseek, Ollama, etc.) |
 | `onnx` | onnxruntime >= 1.16, tokenizers >= 0.15 | Local embedding (no API calls) |
 | `graph` | neo4j >= 5.0 | Graph-based memory relations |
 | `dev` | pytest, mypy, ruff, etc. | Testing and linting |
+
+> **推荐组合**：`pip install memx[onnx,llm]` — 嵌入完全本地 + Reflector 可选 LLM 增强
 
 ---
 
@@ -209,10 +238,17 @@ config = {
 
     # --- Reflector: distills conversations into knowledge bullets ---
     "reflector": {
-        "mode": "rules",             # "rules" (default, 0 LLM calls) | "llm" | "hybrid"
+        "mode": "rules",             # "rules" (default, 0 LLM) | "llm" | "hybrid" (recommended)
         "min_score": 30.0,           # [0–100] minimum instructivity score to keep a bullet
         "max_content_length": 500,   # max chars per distilled bullet
         "max_code_lines": 3,         # max code block lines tolerated in a bullet
+        # LLM settings (only used when mode = "llm" or "hybrid")
+        "llm_model": "openai/gpt-4o-mini",  # any litellm-compatible model identifier
+        "llm_api_base": None,        # custom API base URL (e.g. "https://api.deepseek.com")
+        "llm_api_key": None,         # API key (falls back to env vars if None)
+        "max_eval_tokens": 512,      # max tokens for LLM evaluation response
+        "max_distill_tokens": 256,   # max tokens for LLM distillation response
+        "llm_temperature": 0.1,      # low temperature for deterministic extraction
     },
 
     # --- Curator: deduplication and conflict detection ---
@@ -300,10 +336,9 @@ Raw Input (messages / string)
 └────────┬────────────┘
          ▼
 ┌─────────────────────┐
-│  Reflector (4-stage) │  1. PatternDetector → detect learnable patterns
-│                      │  2. KnowledgeScorer → classify & score (0–100)
-│                      │  3. PrivacySanitizer → redact in context
-│                      │  4. BulletDistiller → compact into CandidateBullets
+│  Reflector (4-stage) │  rules: PatternDetector → KnowledgeScorer → Sanitizer → BulletDistiller
+│                      │  llm:   LLMEvaluator → Sanitizer → LLMDistiller
+│                      │  hybrid: PatternDetector → LLMEvaluator refine → Sanitizer → LLMDistiller
 └────────┬────────────┘
          ▼
 ┌─────────────────────┐
@@ -560,6 +595,13 @@ Built-in patterns cannot be disabled (by design). If they catch false positives,
 ### `add()` returns `raw_fallback: true`
 
 The Reflector failed to extract structured bullets and fell back to raw mem0 `add()`. Your data was still saved — just not distilled. Check input format (list of role/content dicts works best).
+
+### LLM/hybrid mode falls back to rules
+
+If you set `reflector.mode` to `"llm"` or `"hybrid"` but bullets lack `distilled_rule`, the LLM call may have failed and auto-degraded to rules mode. Check:
+1. `litellm` is installed (`pip install memx[llm]`)
+2. API key is set (env var or `reflector.llm_api_key`)
+3. Model identifier is valid for your provider (e.g. `"openai/gpt-4o-mini"`, `"deepseek/deepseek-chat"`)
 
 ---
 
