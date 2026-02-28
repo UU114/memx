@@ -34,6 +34,14 @@ class ReflectorConfig(BaseModel):
     max_content_length: int = Field(default=500, gt=0)
     max_code_lines: int = Field(default=3, gt=0)
 
+    # LLM settings (used by "llm" and "hybrid" modes)
+    llm_model: str = "openai/gpt-4o-mini"
+    llm_api_base: Optional[str] = None
+    llm_api_key: Optional[str] = None
+    max_eval_tokens: int = Field(default=512, gt=0)
+    max_distill_tokens: int = Field(default=256, gt=0)
+    llm_temperature: float = Field(default=0.1, ge=0.0, le=2.0)
+
     @model_validator(mode="after")
     def _validate_mode(self) -> ReflectorConfig:
         if self.mode not in _VALID_REFLECTOR_MODES:

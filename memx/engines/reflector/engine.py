@@ -1,4 +1,10 @@
-"""ReflectorEngine — orchestrates the 4-stage knowledge distillation pipeline."""
+"""ReflectorEngine — orchestrates the 4-stage knowledge distillation pipeline.
+
+Supports three operating modes:
+- "rules"  : 0 LLM calls, pure heuristic detection + scoring (default)
+- "llm"    : LLM-based evaluation + distillation for semantic understanding
+- "hybrid" : rules pre-screen + LLM refinement (best quality/cost balance)
+"""
 
 from __future__ import annotations
 
@@ -31,6 +37,10 @@ class ReflectorEngine:
     Stage 3: PrivacySanitizer -- redact sensitive data from scored candidates
     Stage 4: BulletDistiller  -- distill into compact CandidateBullets
 
+    In "llm" mode, Stage 1+2 are replaced by LLMEvaluator and Stage 4
+    by LLMDistiller. In "hybrid" mode, rules pre-screen (Stage 1) and
+    LLM refines scoring (Stage 2) and distillation (Stage 4).
+
     Each stage has independent error handling -- failure in one stage does not
     crash the pipeline.  Fallback logic is applied where possible.
     """
@@ -47,11 +57,27 @@ class ReflectorEngine:
         self._distiller = BulletDistiller(self._config)
         self._mode = self._config.mode
 
-        # Only "rules" mode is implemented; warn and fall back for others
+        # Lazy-init LLM components (only when needed)
+        self._llm_evaluator: Optional[object] = None
+        self._llm_distiller: Optional[object] = None
         if self._mode in ("llm", "hybrid"):
+            self._init_llm_components()
+
+    def _init_llm_components(self) -> None:
+        """Initialize LLM evaluator and distiller. Falls back to rules on failure."""
+        try:
+            from memx.engines.reflector.llm_evaluator import LLMEvaluator
+            from memx.engines.reflector.llm_distiller import LLMDistiller
+
+            self._llm_evaluator = LLMEvaluator(self._config)
+            self._llm_distiller = LLMDistiller(self._config)
+            logger.info(
+                "ReflectorEngine: LLM components initialized (mode=%s, model=%s)",
+                self._mode, self._config.llm_model,
+            )
+        except Exception as e:
             logger.warning(
-                "Mode '%s' not yet implemented, falling back to 'rules'",
-                self._mode,
+                "Failed to initialize LLM components, falling back to 'rules': %s", e,
             )
             self._mode = "rules"
 
@@ -60,7 +86,7 @@ class ReflectorEngine:
     # ------------------------------------------------------------------
 
     def reflect(self, event: InteractionEvent) -> list[CandidateBullet]:
-        """Run 4-stage distillation pipeline.
+        """Run distillation pipeline based on current mode.
 
         Each stage has an independent failure boundary -- if one stage fails,
         fallback logic is used rather than crashing the entire pipeline.
@@ -75,6 +101,19 @@ class ReflectorEngine:
             len(event.user_message), len(event.assistant_message), self._mode,
         )
 
+        if self._mode == "llm":
+            return self._reflect_llm(event)
+        elif self._mode == "hybrid":
+            return self._reflect_hybrid(event)
+        else:
+            return self._reflect_rules(event)
+
+    # ------------------------------------------------------------------
+    # Mode: rules (original pipeline)
+    # ------------------------------------------------------------------
+
+    def _reflect_rules(self, event: InteractionEvent) -> list[CandidateBullet]:
+        """Pure rules pipeline: PatternDetector -> KnowledgeScorer -> Sanitizer -> BulletDistiller."""
         # Stage 1: Pattern Detection
         patterns = self._run_stage1(event)
         if not patterns:
@@ -92,8 +131,125 @@ class ReflectorEngine:
 
         # Stage 4: Bullet Distillation
         bullets = self._run_stage4(sanitized)
-        logger.debug("ReflectorEngine.reflect: pipeline complete -> %d bullet(s)", len(bullets))
+        logger.debug("ReflectorEngine._reflect_rules: pipeline complete -> %d bullet(s)", len(bullets))
 
+        return bullets
+
+    # ------------------------------------------------------------------
+    # Mode: llm (full LLM evaluation + distillation)
+    # ------------------------------------------------------------------
+
+    def _reflect_llm(self, event: InteractionEvent) -> list[CandidateBullet]:
+        """LLM pipeline: LLMEvaluator -> Sanitizer -> LLMDistiller.
+
+        Falls back to rules pipeline on LLM failure.
+        """
+        from memx.engines.reflector.llm_evaluator import LLMEvaluator
+        from memx.engines.reflector.llm_distiller import LLMDistiller
+
+        evaluator = self._llm_evaluator
+        distiller = self._llm_distiller
+        if not isinstance(evaluator, LLMEvaluator) or not isinstance(distiller, LLMDistiller):
+            logger.warning("LLM components not available, falling back to rules")
+            return self._reflect_rules(event)
+
+        # Stage 1+2: LLM Evaluation
+        try:
+            scored = evaluator.evaluate(event)
+        except Exception as e:
+            logger.warning("LLMEvaluator failed, falling back to rules: %s", e)
+            return self._reflect_rules(event)
+
+        if scored is None:
+            logger.debug("ReflectorEngine._reflect_llm: LLM says nothing to learn")
+            return []
+
+        # Check min_score
+        if scored.instructivity_score < self._config.min_score:
+            logger.debug(
+                "ReflectorEngine._reflect_llm: LLM score %.1f < min %.1f, skipping",
+                scored.instructivity_score, self._config.min_score,
+            )
+            return []
+
+        # Stage 3: Privacy Sanitization
+        sanitized = self._run_stage3([scored])
+
+        # Stage 4: LLM Distillation
+        try:
+            bullet = distiller.distill(sanitized[0])
+            logger.debug(
+                "ReflectorEngine._reflect_llm: complete -> section=%s rule=%r",
+                bullet.section.value,
+                (bullet.distilled_rule or "")[:60],
+            )
+            return [bullet]
+        except Exception as e:
+            logger.warning("LLMDistiller failed, using fallback: %s", e)
+            return self._run_stage4(sanitized)
+
+    # ------------------------------------------------------------------
+    # Mode: hybrid (rules pre-screen + LLM refinement)
+    # ------------------------------------------------------------------
+
+    def _reflect_hybrid(self, event: InteractionEvent) -> list[CandidateBullet]:
+        """Hybrid pipeline: rules detect -> LLM refine scoring -> Sanitizer -> LLM distill.
+
+        If rules detect nothing, LLMEvaluator gets a chance to evaluate directly.
+        Falls back to rules pipeline on LLM failure.
+        """
+        from memx.engines.reflector.llm_evaluator import LLMEvaluator
+        from memx.engines.reflector.llm_distiller import LLMDistiller
+
+        evaluator = self._llm_evaluator
+        distiller = self._llm_distiller
+        if not isinstance(evaluator, LLMEvaluator) or not isinstance(distiller, LLMDistiller):
+            logger.warning("LLM components not available, falling back to rules")
+            return self._reflect_rules(event)
+
+        # Stage 1: Rules-based pre-screening
+        patterns = self._run_stage1(event)
+        scored_candidates: list[ScoredCandidate] = []
+
+        if patterns:
+            # Stage 2a: Rule-based scoring
+            rule_scored = self._run_stage2(patterns)
+            # Stage 2b: LLM refinement of rule-detected candidates
+            for candidate in rule_scored:
+                try:
+                    refined = evaluator.refine(candidate)
+                    scored_candidates.append(refined)
+                except Exception as e:
+                    logger.debug("LLM refine failed for candidate, keeping rule score: %s", e)
+                    scored_candidates.append(candidate)
+        else:
+            # Rules found nothing — give LLM a direct shot
+            logger.debug("ReflectorEngine._reflect_hybrid: rules found nothing, trying LLM evaluation")
+            try:
+                llm_scored = evaluator.evaluate(event)
+                if llm_scored is not None and llm_scored.instructivity_score >= self._config.min_score:
+                    scored_candidates.append(llm_scored)
+            except Exception as e:
+                logger.debug("LLM direct evaluation failed: %s", e)
+
+        if not scored_candidates:
+            logger.debug("ReflectorEngine._reflect_hybrid: nothing to learn")
+            return []
+
+        # Stage 3: Privacy Sanitization
+        sanitized = self._run_stage3(scored_candidates)
+
+        # Stage 4: LLM Distillation (with fallback)
+        bullets: list[CandidateBullet] = []
+        for candidate in sanitized:
+            try:
+                bullet = distiller.distill(candidate)
+                bullets.append(bullet)
+            except Exception as e:
+                logger.debug("LLM distill failed for candidate, using fallback: %s", e)
+                bullets.append(self._fallback_distill_single(candidate))
+
+        logger.debug("ReflectorEngine._reflect_hybrid: complete -> %d bullet(s)", len(bullets))
         return bullets
 
     # ------------------------------------------------------------------
@@ -208,11 +364,22 @@ class ReflectorEngine:
             for c in candidates
         ]
 
+    @staticmethod
+    def _fallback_distill_single(candidate: ScoredCandidate) -> CandidateBullet:
+        """Fallback for a single candidate when LLM distillation fails."""
+        return CandidateBullet(
+            content=candidate.pattern.content[:500],
+            section=candidate.section,
+            knowledge_type=candidate.knowledge_type,
+            instructivity_score=candidate.instructivity_score,
+            source_type=SourceType.INTERACTION,
+        )
+
     # ------------------------------------------------------------------
     # Properties
     # ------------------------------------------------------------------
 
     @property
     def mode(self) -> str:
-        """Current operating mode (always 'rules' until llm/hybrid are implemented)."""
+        """Current operating mode: 'rules', 'llm', or 'hybrid'."""
         return self._mode

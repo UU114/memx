@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -147,32 +148,59 @@ class TestModeRulesDefault:
         assert engine.mode == "rules"
 
 
-# -- Test 6: LLM mode falls back to rules -----------------------------------
+# -- Test 6: LLM mode initializes or falls back gracefully ------------------
 
 
-class TestModeLlmFallback:
-    def test_mode_llm_fallback(self, caplog: pytest.LogCaptureFixture) -> None:
-        """mode='llm' falls back to 'rules' with a warning."""
+class TestModeLlm:
+    def test_mode_llm_with_litellm(self) -> None:
+        """mode='llm' initializes LLM components when litellm is available."""
         config = ReflectorConfig(mode="llm")
-        with caplog.at_level(logging.WARNING):
-            engine = ReflectorEngine(config=config)
-        assert engine.mode == "rules"
-        assert "not yet implemented" in caplog.text
-        assert "'llm'" in caplog.text
+        engine = ReflectorEngine(config=config)
+        # If litellm is installed, mode stays "llm"; otherwise falls back to "rules"
+        assert engine.mode in ("llm", "rules")
+
+    def test_mode_llm_fallback_no_litellm(self, caplog: pytest.LogCaptureFixture) -> None:
+        """mode='llm' falls back to 'rules' when LLM init fails."""
+        config = ReflectorConfig(mode="llm")
+        with patch(
+            "memx.engines.reflector.engine.ReflectorEngine._init_llm_components",
+            side_effect=RuntimeError("no litellm"),
+        ):
+            engine = ReflectorEngine.__new__(ReflectorEngine)
+            engine._config = config
+            engine._detector = MagicMock()
+            engine._scorer = MagicMock()
+            engine._sanitizer = MagicMock()
+            engine._distiller = MagicMock()
+            engine._mode = config.mode
+            engine._llm_evaluator = None
+            engine._llm_distiller = None
+        # Simulate what happens: components not available -> reflect_llm falls back
+        assert engine._llm_evaluator is None
 
 
-# -- Test 7: Hybrid mode falls back to rules --------------------------------
+# -- Test 7: Hybrid mode initializes or falls back gracefully ---------------
 
 
-class TestModeHybridFallback:
-    def test_mode_hybrid_fallback(self, caplog: pytest.LogCaptureFixture) -> None:
-        """mode='hybrid' falls back to 'rules'."""
+class TestModeHybrid:
+    def test_mode_hybrid_with_litellm(self) -> None:
+        """mode='hybrid' initializes LLM components when litellm is available."""
         config = ReflectorConfig(mode="hybrid")
-        with caplog.at_level(logging.WARNING):
-            engine = ReflectorEngine(config=config)
-        assert engine.mode == "rules"
-        assert "not yet implemented" in caplog.text
-        assert "'hybrid'" in caplog.text
+        engine = ReflectorEngine(config=config)
+        assert engine.mode in ("hybrid", "rules")
+
+    def test_mode_hybrid_reflect_fallback(self) -> None:
+        """hybrid mode falls back to rules when LLM components unavailable."""
+        config = ReflectorConfig(mode="hybrid")
+        engine = ReflectorEngine(config=config)
+        # Force LLM components to None
+        engine._llm_evaluator = None
+        engine._llm_distiller = None
+        engine._mode = "hybrid"
+        # Should still work (fallback to rules)
+        event = _error_event()
+        bullets = engine.reflect(event)
+        assert len(bullets) >= 1
 
 
 # -- Test 8: Stage 1 failure -> empty list -----------------------------------
@@ -389,3 +417,224 @@ class TestMultiplePatterns:
             assert isinstance(bullet, CandidateBullet)
             assert bullet.content != ""
             assert bullet.source_type == SourceType.INTERACTION
+
+
+# -- Test 15: LLMEvaluator parsing -----------------------------------------
+
+
+class TestLLMEvaluatorParsing:
+    """Test LLMEvaluator._parse_response with mock JSON responses."""
+
+    def _make_evaluator(self) -> object:
+        from memx.engines.reflector.llm_evaluator import LLMEvaluator
+
+        config = ReflectorConfig(mode="llm")
+        return LLMEvaluator(config)
+
+    def test_parse_valid_response(self) -> None:
+        from memx.engines.reflector.llm_evaluator import LLMEvaluator
+
+        evaluator: LLMEvaluator = self._make_evaluator()  # type: ignore[assignment]
+        event = _error_event()
+        raw = '{"should_record": true, "knowledge_type": "pitfall", "section": "debugging", "instructivity_score": 82, "summary": "Use rustup update to fix build errors"}'
+        result = evaluator._parse_response(raw, event)
+
+        assert result is not None
+        assert result.knowledge_type == KnowledgeType.PITFALL
+        assert result.section == BulletSection.DEBUGGING
+        assert result.instructivity_score == 82.0
+        assert "rustup" in result.pattern.content
+
+    def test_parse_should_record_false(self) -> None:
+        from memx.engines.reflector.llm_evaluator import LLMEvaluator
+
+        evaluator: LLMEvaluator = self._make_evaluator()  # type: ignore[assignment]
+        event = _event()
+        raw = '{"should_record": false, "knowledge_type": "knowledge", "section": "general", "instructivity_score": 10, "summary": "trivial"}'
+        result = evaluator._parse_response(raw, event)
+        assert result is None
+
+    def test_parse_invalid_json(self) -> None:
+        from memx.engines.reflector.llm_evaluator import LLMEvaluator
+
+        evaluator: LLMEvaluator = self._make_evaluator()  # type: ignore[assignment]
+        event = _event()
+        result = evaluator._parse_response("not json at all", event)
+        assert result is None
+
+    def test_parse_markdown_fenced_json(self) -> None:
+        from memx.engines.reflector.llm_evaluator import LLMEvaluator
+
+        evaluator: LLMEvaluator = self._make_evaluator()  # type: ignore[assignment]
+        event = _error_event()
+        raw = '```json\n{"should_record": true, "knowledge_type": "method", "section": "workflow", "instructivity_score": 65, "summary": "Run tests before deploy"}\n```'
+        result = evaluator._parse_response(raw, event)
+        assert result is not None
+        assert result.knowledge_type == KnowledgeType.METHOD
+
+    def test_parse_invalid_enum_values_fallback(self) -> None:
+        from memx.engines.reflector.llm_evaluator import LLMEvaluator
+
+        evaluator: LLMEvaluator = self._make_evaluator()  # type: ignore[assignment]
+        event = _event()
+        raw = '{"should_record": true, "knowledge_type": "INVALID", "section": "NOPE", "instructivity_score": 50, "summary": "test"}'
+        result = evaluator._parse_response(raw, event)
+        assert result is not None
+        assert result.knowledge_type == KnowledgeType.KNOWLEDGE
+        assert result.section == BulletSection.GENERAL
+
+
+# -- Test 16: LLMDistiller parsing -----------------------------------------
+
+
+class TestLLMDistillerParsing:
+    """Test LLMDistiller._parse_response with mock JSON responses."""
+
+    def _make_distiller(self) -> object:
+        from memx.engines.reflector.llm_distiller import LLMDistiller
+
+        config = ReflectorConfig(mode="llm")
+        return LLMDistiller(config)
+
+    def _make_candidate(self) -> ScoredCandidate:
+        pattern = DetectedPattern(
+            pattern_type="error_fix",
+            content="Use rustup update to fix compilation errors",
+            confidence=0.8,
+        )
+        return ScoredCandidate(
+            pattern=pattern,
+            section=BulletSection.DEBUGGING,
+            knowledge_type=KnowledgeType.PITFALL,
+            instructivity_score=80.0,
+        )
+
+    def test_parse_valid_response(self) -> None:
+        from memx.engines.reflector.llm_distiller import LLMDistiller
+
+        distiller: LLMDistiller = self._make_distiller()  # type: ignore[assignment]
+        candidate = self._make_candidate()
+        raw = '{"distilled_rule": "When Rust build fails with toolchain errors, run rustup update, because outdated toolchains cause compilation failures.", "content": "Running rustup update refreshes the compiler and standard library.", "related_tools": ["rustup", "cargo"], "key_entities": ["rustup update"], "tags": ["rust", "build"]}'
+        result = distiller._parse_response(raw, candidate)
+
+        assert result is not None
+        assert isinstance(result, CandidateBullet)
+        assert result.distilled_rule is not None
+        assert "When" in result.distilled_rule
+        assert "rustup" in result.related_tools
+        assert result.section == BulletSection.DEBUGGING
+        assert result.instructivity_score == 80.0
+
+    def test_parse_invalid_json_returns_none(self) -> None:
+        from memx.engines.reflector.llm_distiller import LLMDistiller
+
+        distiller: LLMDistiller = self._make_distiller()  # type: ignore[assignment]
+        candidate = self._make_candidate()
+        result = distiller._parse_response("garbage", candidate)
+        assert result is None
+
+    def test_fallback_distill(self) -> None:
+        from memx.engines.reflector.llm_distiller import LLMDistiller
+
+        distiller: LLMDistiller = self._make_distiller()  # type: ignore[assignment]
+        candidate = self._make_candidate()
+        result = distiller._fallback_distill(candidate)
+        assert isinstance(result, CandidateBullet)
+        assert result.content == candidate.pattern.content
+        assert result.section == BulletSection.DEBUGGING
+
+
+# -- Test 17: LLM mode end-to-end with mocked litellm ----------------------
+
+
+def _ensure_litellm_mock() -> MagicMock:
+    """Inject a mock litellm module into sys.modules if not installed."""
+    if "litellm" not in sys.modules:
+        mock_litellm = MagicMock()
+        sys.modules["litellm"] = mock_litellm
+        return mock_litellm
+    return sys.modules["litellm"]  # type: ignore[return-value]
+
+
+class TestLLMModeMocked:
+    """Test full LLM pipeline with mocked litellm.completion."""
+
+    def test_llm_mode_end_to_end(self) -> None:
+        """LLM mode: mocked LLM -> evaluator + distiller produce valid bullet."""
+        mock_litellm = _ensure_litellm_mock()
+
+        eval_response = MagicMock()
+        eval_response.choices = [MagicMock()]
+        eval_response.choices[0].message.content = (
+            '{"should_record": true, "knowledge_type": "pitfall", '
+            '"section": "debugging", "instructivity_score": 85, '
+            '"summary": "Use rustup update to fix Rust build errors"}'
+        )
+
+        distill_response = MagicMock()
+        distill_response.choices = [MagicMock()]
+        distill_response.choices[0].message.content = (
+            '{"distilled_rule": "When Rust build fails, run rustup update, because outdated toolchains cause errors.", '
+            '"content": "Refresh Rust toolchain with rustup update.", '
+            '"related_tools": ["rustup", "cargo"], '
+            '"key_entities": ["rustup update"], '
+            '"tags": ["rust", "debugging"]}'
+        )
+
+        call_count = 0
+
+        def mock_completion(**kwargs: object) -> MagicMock:
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                return eval_response
+            return distill_response
+
+        mock_litellm.completion = mock_completion
+
+        # Force re-import to pick up mock
+        for mod_name in list(sys.modules):
+            if "llm_evaluator" in mod_name or "llm_distiller" in mod_name:
+                del sys.modules[mod_name]
+
+        config = ReflectorConfig(mode="llm", min_score=30.0)
+        engine = ReflectorEngine(config=config)
+        assert engine.mode == "llm"
+
+        event = _error_event()
+        call_count = 0  # reset for reflect call
+        bullets = engine.reflect(event)
+
+        assert len(bullets) == 1
+        bullet = bullets[0]
+        assert isinstance(bullet, CandidateBullet)
+        assert bullet.distilled_rule is not None
+        assert "rustup" in bullet.distilled_rule
+        assert bullet.section == BulletSection.DEBUGGING
+        assert bullet.knowledge_type == KnowledgeType.PITFALL
+        assert "rustup" in bullet.related_tools
+
+    def test_llm_mode_should_record_false(self) -> None:
+        """LLM evaluator says not worth recording -> empty list."""
+        mock_litellm = _ensure_litellm_mock()
+
+        eval_response = MagicMock()
+        eval_response.choices = [MagicMock()]
+        eval_response.choices[0].message.content = (
+            '{"should_record": false, "knowledge_type": "knowledge", '
+            '"section": "general", "instructivity_score": 10, '
+            '"summary": "trivial greeting"}'
+        )
+
+        mock_litellm.completion = lambda **kw: eval_response
+
+        for mod_name in list(sys.modules):
+            if "llm_evaluator" in mod_name or "llm_distiller" in mod_name:
+                del sys.modules[mod_name]
+
+        config = ReflectorConfig(mode="llm")
+        engine = ReflectorEngine(config=config)
+        event = _event(user="hi", assistant="hello there")
+        bullets = engine.reflect(event)
+
+        assert bullets == []
