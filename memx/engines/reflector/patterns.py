@@ -8,11 +8,14 @@ To add a new detection heuristic, create a subclass and register it in
 
 from __future__ import annotations
 
+import logging
 import re
 from abc import ABC, abstractmethod
 from typing import Optional, Sequence
 
 from memx.types import DetectedPattern, InteractionEvent
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -73,19 +76,27 @@ class ErrorFixRule(PatternRule):
         # Also honour metadata.error_msg
         has_error_meta = bool(event.metadata.get("error_msg"))
 
+        logger.debug(
+            "ErrorFixRule: has_error=%s has_meta=%s asst_len=%d",
+            has_error_context, has_error_meta, len(event.assistant_message.strip()),
+        )
+
         if not has_error_context and not has_error_meta:
             return None
 
         # Assistant must provide a substantive response
         if len(event.assistant_message.strip()) < 20:
+            logger.debug("ErrorFixRule: assistant response too short (<20)")
             return None
 
         assistant_lower = event.assistant_message.lower()
         has_fix = any(kw in assistant_lower for kw in self.FIX_KEYWORDS)
         if not has_fix:
+            logger.debug("ErrorFixRule: no fix keywords found in assistant response")
             return None
 
         content = f"Error: {event.user_message[:200]}\nFix: {event.assistant_message[:300]}"
+        logger.debug("ErrorFixRule: MATCH -> content_len=%d", len(content))
         return DetectedPattern(
             pattern_type=self.name,
             content=content,
@@ -118,6 +129,7 @@ class RetrySuccessRule(PatternRule):
         self, event: InteractionEvent, history: Sequence[InteractionEvent]
     ) -> Optional[DetectedPattern]:
         if len(history) < 1:
+            logger.debug("RetrySuccessRule: no history, skipping")
             return None
 
         current_keywords = set(re.findall(r"\b\w{4,}\b", event.user_message.lower()))
@@ -137,6 +149,10 @@ class RetrySuccessRule(PatternRule):
             )
             current_is_success = any(
                 kw in event.assistant_message.lower() for kw in self.SUCCESS_KEYWORDS
+            )
+            logger.debug(
+                "RetrySuccessRule: overlap=%d prev_error=%s curr_success=%s",
+                len(overlap), prev_had_error, current_is_success,
             )
             if prev_had_error and current_is_success:
                 content = (
@@ -187,13 +203,20 @@ class ConfigChangeRule(PatternRule):
         has_config_keyword = any(kw in combined for kw in self.CONFIG_KEYWORDS)
         has_config_file = any(ext in combined for ext in self.CONFIG_EXTENSIONS)
 
+        logger.debug(
+            "ConfigChangeRule: has_keyword=%s has_file=%s",
+            has_config_keyword, has_config_file,
+        )
+
         if not has_config_keyword and not has_config_file:
             return None
 
         # Need substantive assistant response
         if len(event.assistant_message.strip()) < 20:
+            logger.debug("ConfigChangeRule: assistant response too short")
             return None
 
+        logger.debug("ConfigChangeRule: MATCH")
         return DetectedPattern(
             pattern_type=self.name,
             content=f"Config: {event.assistant_message[:400]}",
@@ -232,6 +255,8 @@ class NewToolRule(PatternRule):
         combined = f"{event.user_message} {event.assistant_message}"
         tool_matches: list[str] = self.TOOL_PATTERNS.findall(combined)
 
+        logger.debug("NewToolRule: regex matches=%s", tool_matches[:3])
+
         if not tool_matches:
             # Fallback: check metadata for tool_name
             tool_name = event.metadata.get("tool_name", "")
@@ -240,6 +265,7 @@ class NewToolRule(PatternRule):
             # Only fire if this tool has not been seen in history
             seen_tools = {e.metadata.get("tool_name", "") for e in history}
             if tool_name in seen_tools:
+                logger.debug("NewToolRule: tool %r already seen in history", tool_name)
                 return None
             tool_matches = [tool_name]
 
@@ -248,8 +274,10 @@ class NewToolRule(PatternRule):
 
         # Check assistant has substantive response
         if len(event.assistant_message.strip()) < 20:
+            logger.debug("NewToolRule: assistant response too short")
             return None
 
+        logger.debug("NewToolRule: MATCH tools=%s", tool_matches[:3])
         return DetectedPattern(
             pattern_type=self.name,
             content=f"Tool: {', '.join(tool_matches[:3])}\n{event.assistant_message[:300]}",
@@ -281,6 +309,7 @@ class RepetitiveOpRule(PatternRule):
         self, event: InteractionEvent, history: Sequence[InteractionEvent]
     ) -> Optional[DetectedPattern]:
         if len(history) < self.MIN_OCCURRENCES - 1:
+            logger.debug("RepetitiveOpRule: history too short (%d < %d)", len(history), self.MIN_OCCURRENCES - 1)
             return None
 
         # Extract keywords (words with 4+ chars) from current event
@@ -296,9 +325,11 @@ class RepetitiveOpRule(PatternRule):
             if len(overlap) >= 2:
                 similar_count += 1
 
+        logger.debug("RepetitiveOpRule: similar_count=%d (need>=%d)", similar_count, self.MIN_OCCURRENCES - 1)
         if similar_count < self.MIN_OCCURRENCES - 1:
             return None
 
+        logger.debug("RepetitiveOpRule: MATCH (occurrences=%d)", similar_count + 1)
         return DetectedPattern(
             pattern_type=self.name,
             content=f"Repeated pattern ({similar_count + 1}x): {event.user_message[:300]}",

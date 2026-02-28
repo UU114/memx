@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from typing import Optional
 
+import logging
+
 from memx.config import ReflectorConfig
 from memx.types import (
     BulletSection,
@@ -13,6 +15,8 @@ from memx.types import (
     ScoredCandidate,
     SourceType,
 )
+
+logger = logging.getLogger(__name__)
 
 # Common tool/command names for extraction
 _KNOWN_TOOLS = frozenset({
@@ -38,8 +42,14 @@ class BulletDistiller:
         """Convert a ScoredCandidate into a CandidateBullet."""
         raw_content = candidate.pattern.content
         content = self._truncate_content(raw_content)
+        was_truncated = len(content) < len(raw_content)
         tools = self._extract_tools(raw_content, candidate.pattern.metadata)
         entities = self._extract_entities(raw_content)
+
+        logger.debug(
+            "BulletDistiller.distill: content_len=%d->%d truncated=%s tools=%s entities=%s",
+            len(raw_content), len(content), was_truncated, tools, entities[:5],
+        )
 
         return CandidateBullet(
             content=content,

@@ -430,3 +430,155 @@ class TestVectorMatchDataclass:
         m2 = VectorMatch(bullet_id="b", score=0.2)
         m1.metadata["x"] = 1
         assert "x" not in m2.metadata
+
+
+# ── STORY-031 补充测试：异常路径、两种 mem0 输出格式、分数类型兜底 ─────
+
+
+class TestVectorSearcherInvalidScoreTypes:
+    """分数字段类型异常时的兜底行为。"""
+
+    def test_score_as_string_numeric(self) -> None:
+        """Score provided as numeric string should be parsed correctly."""
+        raw = _make_raw_results([
+            {"id": "b1", "score": "0.85", "memory": "test"},
+        ])
+        fn = _mock_search_fn(return_value=raw)
+        searcher = VectorSearcher(search_fn=fn)
+        results = searcher.search("q")
+        assert len(results) == 1
+        assert results[0].score == pytest.approx(0.85)
+
+    def test_score_as_invalid_string(self) -> None:
+        """Score as non-numeric string should fallback to 0.0."""
+        raw = _make_raw_results([
+            {"id": "b1", "score": "not_a_number", "memory": "test"},
+        ])
+        fn = _mock_search_fn(return_value=raw)
+        searcher = VectorSearcher(search_fn=fn)
+        results = searcher.search("q")
+        assert len(results) == 1
+        # All score keys fail to parse -> raw_score stays 0.0
+        assert results[0].score == pytest.approx(0.0)
+
+    def test_score_as_none(self) -> None:
+        """Score key exists but value is None -> fallback to 0.0."""
+        raw = _make_raw_results([
+            {"id": "b1", "score": None, "memory": "test"},
+        ])
+        fn = _mock_search_fn(return_value=raw)
+        searcher = VectorSearcher(search_fn=fn)
+        results = searcher.search("q")
+        assert len(results) == 1
+        assert results[0].score == pytest.approx(0.0)
+
+    def test_no_score_key_at_all(self) -> None:
+        """Result with no score/similarity/distance key -> score 0.0."""
+        raw = _make_raw_results([
+            {"id": "b1", "memory": "no score here"},
+        ])
+        fn = _mock_search_fn(return_value=raw)
+        searcher = VectorSearcher(search_fn=fn)
+        results = searcher.search("q")
+        assert len(results) == 1
+        assert results[0].score == pytest.approx(0.0)
+
+
+class TestVectorSearcherEmptyIdFallback:
+    """Empty or missing ID 字段的兜底行为。"""
+
+    def test_empty_string_id_skipped(self) -> None:
+        """Item with id='' should be skipped."""
+        raw = _make_raw_results([
+            {"id": "", "score": 0.5, "memory": "empty id"},
+            {"id": "b2", "score": 0.8, "memory": "good id"},
+        ])
+        fn = _mock_search_fn(return_value=raw)
+        searcher = VectorSearcher(search_fn=fn)
+        results = searcher.search("q")
+        assert len(results) == 1
+        assert results[0].bullet_id == "b2"
+
+    def test_numeric_id_converted_to_string(self) -> None:
+        """Numeric id should be converted to string."""
+        raw = _make_raw_results([
+            {"id": 42, "score": 0.5, "memory": "numeric id"},
+        ])
+        fn = _mock_search_fn(return_value=raw)
+        searcher = VectorSearcher(search_fn=fn)
+        results = searcher.search("q")
+        assert len(results) == 1
+        assert results[0].bullet_id == "42"
+
+
+class TestVectorSearcherMem0Formats:
+    """两种 mem0 输出格式的兼容性。"""
+
+    def test_dict_with_results_key(self) -> None:
+        """Standard format: dict with 'results' key."""
+        raw = {"results": [
+            {"id": "r1", "score": 0.9, "memory": "result 1"},
+        ]}
+        fn = _mock_search_fn(return_value=raw)
+        searcher = VectorSearcher(search_fn=fn)
+        results = searcher.search("q")
+        assert len(results) == 1
+        assert results[0].bullet_id == "r1"
+
+    def test_dict_with_memories_key(self) -> None:
+        """Alternate format: dict with 'memories' key."""
+        raw = {"memories": [
+            {"id": "m1", "score": 0.8, "memory": "memory 1"},
+        ]}
+        fn = _mock_search_fn(return_value=raw)
+        searcher = VectorSearcher(search_fn=fn)
+        results = searcher.search("q")
+        assert len(results) == 1
+        assert results[0].bullet_id == "m1"
+
+    def test_plain_list_format(self) -> None:
+        """Plain list format without wrapper dict."""
+        raw = [
+            {"id": "l1", "score": 0.7, "content": "list item"},
+        ]
+        fn = _mock_search_fn(return_value=raw)
+        searcher = VectorSearcher(search_fn=fn)
+        results = searcher.search("q")
+        assert len(results) == 1
+        assert results[0].bullet_id == "l1"
+        assert results[0].content == "list item"
+
+    def test_dict_with_neither_results_nor_memories(self) -> None:
+        """Dict without 'results' or 'memories' key -> empty results."""
+        raw = {"data": [{"id": "x", "score": 0.5}]}
+        fn = _mock_search_fn(return_value=raw)
+        searcher = VectorSearcher(search_fn=fn)
+        results = searcher.search("q")
+        assert results == []
+
+    def test_integer_return_value_handled(self) -> None:
+        """Integer return value (neither list nor dict) -> empty list."""
+        fn = _mock_search_fn(return_value=42)
+        searcher = VectorSearcher(search_fn=fn)
+        results = searcher.search("q")
+        assert results == []
+
+
+class TestNormalizeScoreEdge:
+    """Score normalization edge cases."""
+
+    def test_exactly_zero(self) -> None:
+        """Score of exactly 0.0 should pass through unchanged."""
+        assert _normalize_score(0.0) == pytest.approx(0.0)
+
+    def test_exactly_one(self) -> None:
+        """Score of exactly 1.0 should pass through unchanged."""
+        assert _normalize_score(1.0) == pytest.approx(1.0)
+
+    def test_very_small_negative(self) -> None:
+        """Very small negative -> mapped via (s+1)/2."""
+        assert _normalize_score(-0.01) == pytest.approx((-0.01 + 1.0) / 2.0)
+
+    def test_large_negative(self) -> None:
+        """Large negative value clamped to 0.0."""
+        assert _normalize_score(-100.0) == pytest.approx(0.0)

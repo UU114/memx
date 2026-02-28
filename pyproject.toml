@@ -1,12 +1,29 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "memx"
-version = "0.1.0"
-description = "MemX: Adaptive Context Engine on top of mem0"
+version = "0.1.1"
+description = "Intelligent memory engine for AI agents — mem0 fork with ACE layer"
+readme = "README.md"
+license = "Apache-2.0"
 requires-python = ">=3.9"
+authors = [{name = "TPY"}]
+keywords = ["memory", "ai", "agent", "mem0", "knowledge-base"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
 dependencies = [
     "mem0ai>=1.0.0",
     "pydantic>=2.0",
@@ -14,18 +31,32 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-onnx = ["onnxruntime>=1.16.0"]
+onnx = ["onnxruntime>=1.16", "tokenizers>=0.15"]
 graph = ["neo4j>=5.0"]
 all = ["memx[onnx]", "memx[graph]"]
 dev = [
-    "ruff>=0.4.0",
-    "mypy>=1.10.0",
     "pytest>=8.0",
-    "pytest-asyncio>=0.23.0",
+    "pytest-asyncio>=0.23",
+    "pytest-benchmark>=4.0",
+    "mypy>=1.10",
+    "ruff>=0.4",
+    "build",
+    "twine",
 ]
 
 [project.scripts]
 memx = "memx.cli.main:cli"
+
+[project.urls]
+Homepage = "https://github.com/user/memx"
+Documentation = "https://github.com/user/memx#readme"
+Repository = "https://github.com/user/memx"
+Issues = "https://github.com/user/memx/issues"
+Changelog = "https://github.com/user/memx/blob/main/CHANGELOG.md"
+
+[tool.setuptools.packages.find]
+include = ["memx*"]
+exclude = ["tests*", "docs*", "bmad*"]
 
 [tool.ruff]
 target-version = "py39"

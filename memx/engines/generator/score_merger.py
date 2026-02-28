@@ -8,7 +8,7 @@ Formula:
     NormKeyword  = KeywordScore / MAX_KEYWORD_SCORE  (0-1)
     NormSemantic = SemanticScore                      (0-1)
     BlendedScore = NormKeyword × kw_weight + NormSemantic × sem_weight
-    FinalScore   = BlendedScore × DecayWeight × RecencyBoost
+    FinalScore   = BlendedScore × DecayWeight × RecencyBoost × ScopeBoost
 
 Degraded mode (no semantic scores): keyword weight is automatically set to 1.0.
 """
@@ -37,6 +37,7 @@ class BulletInfo:
         content:      Text content of the bullet.
         created_at:   When the bullet was created (UTC).
         decay_weight: Pre-computed decay weight from DecayEngine [0.0, 1.0].
+        scope:        Hierarchical scope of the bullet (default "global").
         metadata:     Additional metadata forwarded to the scored result.
     """
 
@@ -44,6 +45,7 @@ class BulletInfo:
     content: str = ""
     created_at: datetime | None = None
     decay_weight: float = 1.0
+    scope: str = "global"
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
@@ -105,6 +107,7 @@ class ScoreMerger:
         keyword_results: dict[str, float],
         semantic_results: dict[str, float] | None,
         bullet_infos: dict[str, BulletInfo],
+        target_scope: str | None = None,
     ) -> list[ScoredBullet]:
         """Merge keyword and semantic scores into a final ranked list.
 
@@ -114,6 +117,8 @@ class ScoreMerger:
                               None / empty dict for degraded mode.
             bullet_infos:     Mapping of bullet_id to BulletInfo for each bullet
                               that appears in keyword_results or semantic_results.
+            target_scope:     When set, bullets whose scope matches the target
+                              receive a configurable scope boost multiplier.
 
         Returns:
             List of ScoredBullet sorted by final_score in descending order.
@@ -167,8 +172,11 @@ class ScoreMerger:
             # Recency boost
             recency = self.compute_recency_boost(info.created_at, now)
 
+            # Scope boost: bullets matching the target scope get a boost
+            scope_b = self._compute_scope_boost(info.scope, target_scope)
+
             # Final composite score
-            final = blended * decay_w * recency
+            final = blended * decay_w * recency * scope_b
 
             scored.append(ScoredBullet(
                 bullet_id=bid,
@@ -216,6 +224,31 @@ class ScoreMerger:
         if age_days <= self._config.recency_boost_days:
             return self._config.recency_boost_factor
 
+        return 1.0
+
+    def _compute_scope_boost(
+        self,
+        bullet_scope: str,
+        target_scope: str | None,
+    ) -> float:
+        """Compute scope boost multiplier.
+
+        When a target_scope is set and the bullet's scope matches it,
+        the bullet receives the configured scope_boost multiplier.
+        Bullets with scope "global" or when no target_scope is set
+        receive a neutral 1.0 multiplier.
+
+        Args:
+            bullet_scope:  The scope of the bullet.
+            target_scope:  The requested search scope (may be None).
+
+        Returns:
+            Scope boost multiplier >= 1.0.
+        """
+        if not target_scope:
+            return 1.0
+        if bullet_scope == target_scope:
+            return self._config.scope_boost
         return 1.0
 
     # ------------------------------------------------------------------

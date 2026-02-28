@@ -1,5 +1,10 @@
 """Curator engine — semantic deduplication for MemX memories."""
 
+from memx.engines.curator.conflict import (
+    Conflict,
+    ConflictDetector,
+    ConflictResult,
+)
 from memx.engines.curator.engine import (
     CurateResult,
     CuratorEngine,
@@ -15,6 +20,9 @@ from memx.engines.curator.merger import (
 )
 
 __all__ = [
+    "Conflict",
+    "ConflictDetector",
+    "ConflictResult",
     "CurateResult",
     "CuratorEngine",
     "ExistingBullet",

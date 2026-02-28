@@ -76,7 +76,14 @@ class KnowledgeScorer:
         section = self._assign_section(pattern.content)
         score_val = self._compute_score(pattern)
 
+        logger.debug(
+            "KnowledgeScorer: pattern=%s type=%s section=%s raw_score=%.1f min=%.1f",
+            pattern.pattern_type, knowledge_type.value, section.value,
+            score_val, self._min_score,
+        )
+
         if score_val < self._min_score:
+            logger.debug("KnowledgeScorer: REJECTED (%.1f < %.1f)", score_val, self._min_score)
             return None
 
         # Clamp to valid range
@@ -124,4 +131,10 @@ class KnowledgeScorer:
         if any(c in content_lower for c in (".", "/", "\\")):
             distill_bonus += 5.0
 
-        return base * density_penalty + distill_bonus
+        total = base * density_penalty + distill_bonus
+        logger.debug(
+            "KnowledgeScorer._compute_score: base=%.1f density=%.2f(words=%d) "
+            "bonus=%.1f -> total=%.1f",
+            base, density_penalty, word_count, distill_bonus, total,
+        )
+        return total

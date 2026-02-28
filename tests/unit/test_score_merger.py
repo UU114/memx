@@ -418,3 +418,119 @@ class TestScoreMergerConfig:
         assert merger.config is config
         assert abs(merger.keyword_weight - 0.8) < 1e-9
         assert abs(merger.semantic_weight - 0.2) < 1e-9
+
+
+# ── STORY-031 补充测试：降级权重精确性、decay clamp、多 bullet 排序 ────
+
+
+class TestDegradedModeWeightPrecision:
+    """降级模式自动调权的精确性验证。"""
+
+    def test_degraded_kw_weight_exactly_one(self) -> None:
+        """In degraded mode, keyword weight must be exactly 1.0."""
+        merger = ScoreMerger()
+        infos = {"b1": _make_info("b1", "test", days_ago=30)}
+        # Pass None as semantic to trigger degraded mode
+        results = merger.merge({"b1": 17.5}, None, infos)
+        r = results[0]
+        norm_kw = 17.5 / MAX_KEYWORD_SCORE
+        # In degraded: final = norm_kw * 1.0 * decay(1.0) * recency(1.0 for 30d)
+        expected = norm_kw * 1.0 * 1.0 * 1.0
+        assert abs(r.final_score - expected) < 1e-9
+
+    def test_degraded_semantic_contribution_is_zero(self) -> None:
+        """In degraded mode, semantic score should have zero contribution."""
+        merger = ScoreMerger()
+        infos = {"b1": _make_info("b1", "test", days_ago=30)}
+        results = merger.merge({"b1": 35.0}, None, infos)
+        r = results[0]
+        # Full keyword score, no semantic -> final = 1.0 * 1.0 * 1.0 * 1.0 = 1.0
+        assert abs(r.final_score - 1.0) < 1e-9
+        assert r.semantic_score == 0.0
+
+    def test_full_mode_weight_split(self) -> None:
+        """In full mode, verify the exact weight split (0.6/0.4 default)."""
+        merger = ScoreMerger()
+        infos = {"b1": _make_info("b1", "test", days_ago=30)}
+        # kw=35 (norm=1.0), sem=1.0 -> blended = 0.6*1.0 + 0.4*1.0 = 1.0
+        results = merger.merge({"b1": 35.0}, {"b1": 1.0}, infos)
+        assert abs(results[0].final_score - 1.0) < 1e-9
+
+        # kw=0 (norm=0), sem=1.0 -> blended = 0.0 + 0.4 = 0.4
+        results2 = merger.merge({"b1": 0.0}, {"b1": 1.0}, infos)
+        assert abs(results2[0].final_score - 0.4) < 1e-9
+
+        # kw=35 (norm=1.0), sem=0 -> blended = 0.6 + 0.0 = 0.6
+        results3 = merger.merge({"b1": 35.0}, {"b1": 0.0}, infos)
+        assert abs(results3[0].final_score - 0.6) < 1e-9
+
+
+class TestDecayWeightClamping:
+    """Decay weight 边界值 clamp 验证。"""
+
+    def test_negative_decay_clamped_to_zero(self) -> None:
+        """Negative decay weight should be clamped to 0.0."""
+        merger = ScoreMerger()
+        infos = {"b1": _make_info("b1", "test", days_ago=30, decay_weight=-0.5)}
+        results = merger.merge({"b1": 35.0}, None, infos)
+        assert results[0].final_score == 0.0
+        assert results[0].decay_weight == 0.0
+
+    def test_decay_above_one_clamped(self) -> None:
+        """Decay weight > 1.0 should be clamped to 1.0."""
+        merger = ScoreMerger()
+        infos = {"b1": _make_info("b1", "test", days_ago=30, decay_weight=1.5)}
+        results = merger.merge({"b1": 35.0}, None, infos)
+        assert results[0].decay_weight == 1.0
+
+    def test_decay_weight_at_boundary_one(self) -> None:
+        """Decay weight of exactly 1.0 should be preserved."""
+        merger = ScoreMerger()
+        infos = {"b1": _make_info("b1", "test", days_ago=30, decay_weight=1.0)}
+        results = merger.merge({"b1": 35.0}, None, infos)
+        assert results[0].decay_weight == 1.0
+
+
+class TestMultiBulletSorting:
+    """多 bullet 排序精确性验证。"""
+
+    def test_five_bullets_sorted_correctly(self) -> None:
+        """Five bullets with varying scores should be sorted descending."""
+        merger = ScoreMerger()
+        infos = {
+            f"b{i}": _make_info(f"b{i}", f"content {i}", days_ago=30)
+            for i in range(5)
+        }
+        kw = {f"b{i}": float(i * 7) for i in range(5)}
+        results = merger.merge(kw, None, infos)
+        assert len(results) == 5
+        scores = [r.final_score for r in results]
+        assert scores == sorted(scores, reverse=True)
+
+    def test_equal_scores_stable(self) -> None:
+        """Bullets with equal scores should all appear in results."""
+        merger = ScoreMerger()
+        infos = {
+            "a": _make_info("a", "alpha", days_ago=30),
+            "b": _make_info("b", "beta", days_ago=30),
+            "c": _make_info("c", "gamma", days_ago=30),
+        }
+        kw = {"a": 20.0, "b": 20.0, "c": 20.0}
+        results = merger.merge(kw, None, infos)
+        assert len(results) == 3
+        # All should have the same final score
+        scores = {r.final_score for r in results}
+        assert len(scores) == 1
+
+
+class TestRecencyBoostComputeDefaults:
+    """RecencyBoost 默认 now 参数验证。"""
+
+    def test_default_now_uses_utc(self) -> None:
+        """When now is not provided, compute_recency_boost uses UTC now."""
+        from datetime import datetime, timezone
+        merger = ScoreMerger()
+        # A bullet created 1 second ago should get a boost
+        created = datetime.now(timezone.utc) - timedelta(seconds=1)
+        boost = merger.compute_recency_boost(created)
+        assert boost == 1.2  # within 7-day window

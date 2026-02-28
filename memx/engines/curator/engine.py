@@ -29,6 +29,7 @@ class ExistingBullet:
     bullet_id: str
     content: str
     embedding: list[float] | None = None
+    scope: str = "global"
     metadata: dict[str, object] = field(default_factory=dict)
 
 
@@ -48,6 +49,7 @@ class CurateResult:
     to_add: list[CandidateBullet] = field(default_factory=list)
     to_merge: list[MergeCandidate] = field(default_factory=list)
     to_skip: list[CandidateBullet] = field(default_factory=list)
+    conflicts: list[object] = field(default_factory=list)  # list[Conflict]
 
 
 # ---------------------------------------------------------------------------
@@ -86,30 +88,69 @@ class CuratorEngine:
         match the same existing bullet.
         """
         result = CurateResult()
+        logger.debug(
+            "CuratorEngine.curate: candidates=%d existing=%d threshold=%.2f",
+            len(candidates), len(existing), self._config.similarity_threshold,
+        )
+
+        # Conflict detection (non-blocking): run if enabled
+        if self._config.conflict_detection:
+            try:
+                from memx.engines.curator.conflict import ConflictDetector
+
+                detector = ConflictDetector(self._config)
+                conflict_result = detector.detect(existing)
+                if conflict_result.conflicts:
+                    logger.warning(
+                        "Detected %d potential conflicts",
+                        len(conflict_result.conflicts),
+                    )
+                result.conflicts = list(conflict_result.conflicts)
+            except Exception as e:
+                logger.warning("Conflict detection failed: %s", e)
 
         for candidate in candidates:
             # Edge case: empty content is not useful
             if not candidate.content or not candidate.content.strip():
+                logger.debug("CuratorEngine: SKIP empty content")
                 result.to_skip.append(candidate)
                 continue
 
-            # No existing memories -> everything is a new insert
-            if not existing:
+            # Filter existing bullets to only those in the same scope
+            same_scope_existing = [
+                ex for ex in existing if ex.scope == candidate.scope
+            ]
+            logger.debug(
+                "CuratorEngine: candidate scope=%r -> %d same-scope existing",
+                candidate.scope, len(same_scope_existing),
+            )
+
+            # No existing memories in same scope -> insert
+            if not same_scope_existing:
+                logger.debug("CuratorEngine: INSERT (no same-scope existing)")
                 result.to_add.append(candidate)
                 continue
 
-            # Find the most similar existing bullet
+            # Find the most similar existing bullet within same scope
             best_sim = -1.0
             best_match: ExistingBullet | None = None
 
-            for ex in existing:
+            for ex in same_scope_existing:
                 sim = self._compare(candidate, ex)
+                logger.debug(
+                    "CuratorEngine: compare vs %r -> sim=%.3f",
+                    ex.bullet_id, sim,
+                )
                 if sim > best_sim:
                     best_sim = sim
                     best_match = ex
 
             # Decide: merge or insert
             if best_match is not None and best_sim >= self._config.similarity_threshold:
+                logger.debug(
+                    "CuratorEngine: MERGE with %r (sim=%.3f >= %.2f)",
+                    best_match.bullet_id, best_sim, self._config.similarity_threshold,
+                )
                 result.to_merge.append(
                     MergeCandidate(
                         candidate=candidate,
@@ -118,8 +159,16 @@ class CuratorEngine:
                     )
                 )
             else:
+                logger.debug(
+                    "CuratorEngine: INSERT (best_sim=%.3f < threshold=%.2f)",
+                    best_sim, self._config.similarity_threshold,
+                )
                 result.to_add.append(candidate)
 
+        logger.debug(
+            "CuratorEngine.curate result: add=%d merge=%d skip=%d",
+            len(result.to_add), len(result.to_merge), len(result.to_skip),
+        )
         return result
 
     # ------------------------------------------------------------------
@@ -164,7 +213,12 @@ class CuratorEngine:
         intersection = tokens_a & tokens_b
         union = tokens_a | tokens_b
 
-        return len(intersection) / len(union)
+        sim = len(intersection) / len(union)
+        logger.debug(
+            "CuratorEngine.text_similarity: |a|=%d |b|=%d |inter|=%d |union|=%d -> %.3f",
+            len(tokens_a), len(tokens_b), len(intersection), len(union), sim,
+        )
+        return sim
 
     # ------------------------------------------------------------------
     # Internal

@@ -296,20 +296,25 @@ class TestACEModeFallback:
 class TestNotImplemented:
     """ACE-specific methods raise NotImplementedError until their stories land."""
 
-    def test_status_not_implemented(self, memory: Memory) -> None:
-        """status() raises NotImplementedError with STORY reference."""
-        with pytest.raises(NotImplementedError, match="STORY-041"):
-            memory.status()
+    def test_status_implemented(self, memory: Memory) -> None:
+        """status() returns a stats dict (implemented in STORY-041)."""
+        memory._mem0.get_all.return_value = {"memories": []}
+        result = memory.status()
+        assert result["total"] == 0
+        assert "sections" in result
 
-    def test_export_not_implemented(self, memory: Memory) -> None:
-        """export() raises NotImplementedError with STORY reference."""
-        with pytest.raises(NotImplementedError, match="STORY-044"):
-            memory.export()
+    def test_export_implemented(self, memory: Memory) -> None:
+        """export() returns a JSON envelope (implemented in STORY-044)."""
+        memory._mem0.get_all.return_value = {"results": []}
+        result = memory.export()
+        assert isinstance(result, dict)
+        assert result["version"] == "1.0"
+        assert result["total"] == 0
 
-    def test_import_data_not_implemented(self, memory: Memory) -> None:
-        """import_data() raises NotImplementedError with STORY reference."""
-        with pytest.raises(NotImplementedError, match="STORY-044"):
-            memory.import_data({})
+    def test_import_data_implemented(self, memory: Memory) -> None:
+        """import_data() returns import summary (implemented in STORY-044)."""
+        result = memory.import_data({"version": "1.0", "memories": []})
+        assert result == {"imported": 0, "skipped": 0, "merged": 0}
 
     def test_run_decay_sweep_not_implemented(self, memory: Memory) -> None:
         """run_decay_sweep() raises NotImplementedError with STORY reference."""

@@ -67,16 +67,24 @@ class ReflectorEngine:
         Returns an empty list when there is nothing to learn.
         """
         if event is None:
+            logger.debug("ReflectorEngine.reflect: event is None, returning []")
             return []
+
+        logger.debug(
+            "ReflectorEngine.reflect: user_msg_len=%d asst_msg_len=%d mode=%s",
+            len(event.user_message), len(event.assistant_message), self._mode,
+        )
 
         # Stage 1: Pattern Detection
         patterns = self._run_stage1(event)
         if not patterns:
+            logger.debug("ReflectorEngine.reflect: stage1 -> 0 patterns, nothing to learn")
             return []
 
         # Stage 2: Knowledge Scoring
         scored = self._run_stage2(patterns)
         if not scored:
+            logger.debug("ReflectorEngine.reflect: stage2 -> 0 scored (all below min_score=%.1f)", self._config.min_score)
             return []
 
         # Stage 3: Privacy Sanitization
@@ -84,6 +92,7 @@ class ReflectorEngine:
 
         # Stage 4: Bullet Distillation
         bullets = self._run_stage4(sanitized)
+        logger.debug("ReflectorEngine.reflect: pipeline complete -> %d bullet(s)", len(bullets))
 
         return bullets
 
@@ -94,7 +103,10 @@ class ReflectorEngine:
     def _run_stage1(self, event: InteractionEvent) -> list[DetectedPattern]:
         """Stage 1: Detect patterns.  Failure -> empty list."""
         try:
-            return self._detector.detect(event)
+            result = self._detector.detect(event)
+            logger.debug("ReflectorEngine stage1: detected %d pattern(s): %s",
+                         len(result), [p.pattern_type for p in result])
+            return result
         except Exception as e:
             logger.warning("Stage 1 (PatternDetector) failed: %s", e)
             return []
@@ -108,6 +120,13 @@ class ReflectorEngine:
             for p in patterns:
                 if s := self._scorer.score(p):
                     scored.append(s)
+                    logger.debug(
+                        "ReflectorEngine stage2: scored %s -> section=%s type=%s score=%.1f",
+                        p.pattern_type, s.section.value, s.knowledge_type.value,
+                        s.instructivity_score,
+                    )
+                else:
+                    logger.debug("ReflectorEngine stage2: %s rejected (below min_score)", p.pattern_type)
             return scored
         except Exception as e:
             logger.warning("Stage 2 (KnowledgeScorer) failed: %s", e)
@@ -118,12 +137,20 @@ class ReflectorEngine:
     ) -> list[ScoredCandidate]:
         """Stage 3: Sanitize content.  Failure -> use original (unsanitized)."""
         try:
+            modified_count = 0
             for c in candidates:
                 result = self._sanitizer.sanitize(c.pattern.content)
+                if result.was_modified:
+                    modified_count += 1
+                    logger.debug(
+                        "ReflectorEngine stage3: sanitized content (filtered %d items)",
+                        len(result.filtered_items),
+                    )
                 # Replace pattern content with sanitized version via model_copy
                 c.pattern = c.pattern.model_copy(
                     update={"content": result.clean_content}
                 )
+            logger.debug("ReflectorEngine stage3: sanitized %d/%d candidates", modified_count, len(candidates))
             return candidates
         except Exception as e:
             logger.warning("Stage 3 (PrivacySanitizer) failed: %s", e)
@@ -134,7 +161,14 @@ class ReflectorEngine:
     ) -> list[CandidateBullet]:
         """Stage 4: Distill into Bullets.  Failure -> fallback distill."""
         try:
-            return [self._distiller.distill(c) for c in candidates]
+            bullets = [self._distiller.distill(c) for c in candidates]
+            for b in bullets:
+                logger.debug(
+                    "ReflectorEngine stage4: bullet section=%s tools=%s entities=%s content=%r",
+                    b.section.value, b.related_tools, b.key_entities[:3],
+                    b.content[:60],
+                )
+            return bullets
         except Exception as e:
             logger.warning("Stage 4 (BulletDistiller) failed: %s", e)
             return self._fallback_distill(candidates)

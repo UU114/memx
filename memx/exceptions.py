@@ -15,3 +15,11 @@ class PipelineError(MemXError):
 
 class EngineError(MemXError):
     """Error in engine execution."""
+
+
+class DaemonError(MemXError):
+    """Error in daemon lifecycle or IPC."""
+
+
+class DaemonUnavailableError(DaemonError, ConnectionError):
+    """Raised when the daemon is not running or unreachable."""

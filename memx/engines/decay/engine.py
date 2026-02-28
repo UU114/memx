@@ -138,6 +138,10 @@ class DecayEngine:
 
         # -- Permanent retention check --
         if recall_count >= cfg.permanent_threshold:
+            logger.debug(
+                "DecayEngine: PERMANENT (recall_count=%d >= threshold=%d)",
+                recall_count, cfg.permanent_threshold,
+            )
             return DecayResult(
                 weight=1.0,
                 should_archive=False,
@@ -147,9 +151,11 @@ class DecayEngine:
 
         # -- Age computation (handle future timestamps / clock skew) --
         age_days = self._age_in_days(created_at, now)
+        logger.debug("DecayEngine: age_days=%.2f recall_count=%d", age_days, recall_count)
 
         # -- Protection period check --
         if age_days <= cfg.protection_days:
+            logger.debug("DecayEngine: PROTECTED (age=%.2f <= protection=%d)", age_days, cfg.protection_days)
             return DecayResult(
                 weight=1.0,
                 should_archive=False,
@@ -162,6 +168,10 @@ class DecayEngine:
         weight = boosted_weight(base, cfg.boost_factor, recall_count)
 
         should_archive = weight < cfg.archive_threshold
+        logger.debug(
+            "DecayEngine: base=%.4f boosted=%.4f archive=%s (threshold=%.4f)",
+            base, weight, should_archive, cfg.archive_threshold,
+        )
 
         return DecayResult(
             weight=weight,
@@ -193,8 +203,13 @@ class DecayEngine:
 
         result = DecaySweepResult()
 
+        logger.debug("DecayEngine.sweep: processing %d bullets", len(bullets))
         for bullet in bullets:
             try:
+                logger.debug("DecayEngine.sweep: bullet=%r age_days=%.1f recalls=%d",
+                             bullet.bullet_id,
+                             self._age_in_days(bullet.created_at, now),
+                             bullet.recall_count)
                 decay = self.compute_weight(
                     created_at=bullet.created_at,
                     recall_count=bullet.recall_count,
@@ -211,14 +226,23 @@ class DecayEngine:
 
             # Categorize the outcome
             if decay.is_permanent:
+                logger.debug("DecayEngine.sweep: %r -> PERMANENT", bullet.bullet_id)
                 result.permanent += 1
             elif decay.should_archive:
+                logger.debug("DecayEngine.sweep: %r -> ARCHIVE (weight=%.4f)", bullet.bullet_id, decay.weight)
                 result.archived += 1
             elif decay.weight != bullet.current_weight:
+                logger.debug("DecayEngine.sweep: %r -> UPDATED (%.4f -> %.4f)",
+                             bullet.bullet_id, bullet.current_weight, decay.weight)
                 result.updated += 1
             else:
+                logger.debug("DecayEngine.sweep: %r -> UNCHANGED (weight=%.4f)", bullet.bullet_id, decay.weight)
                 result.unchanged += 1
 
+        logger.debug(
+            "DecayEngine.sweep done: updated=%d archived=%d permanent=%d unchanged=%d errors=%d",
+            result.updated, result.archived, result.permanent, result.unchanged, len(result.errors),
+        )
         return result
 
     def reinforce(

@@ -563,3 +563,149 @@ class TestEndToEnd:
         results = engine.search("test", bullets)
         assert len(results) == 1
         assert results[0].metadata == {"source": "manual", "version": 2}
+
+
+# ── STORY-031 补充测试：中文全管线、L4 贡献验证、降级模式单独隔离 ──────
+
+
+class TestEndToEndChinese:
+    """中文全管线端到端测试。"""
+
+    def test_chinese_only_search(self) -> None:
+        """Pure Chinese query and content should work in degraded mode."""
+        engine = GeneratorEngine()
+        bullets = [
+            _make_bullet("b1", "使用数据库连接池进行高效率数据查询"),
+            _make_bullet("b2", "Python列表推导式使用方法"),
+            _make_bullet("b3", "数据库索引优化技巧和实践经验"),
+        ]
+        results = engine.search("数据库查询优化", bullets)
+        # b1 and b3 contain "数据库" and related terms
+        assert results[0].bullet_id in ("b1", "b3")
+        assert results[0].final_score > results[-1].final_score
+
+    def test_chinese_metadata_boost(self) -> None:
+        """Chinese metadata should contribute to scoring."""
+        engine = GeneratorEngine()
+        bullets = [
+            _make_bullet("b1", "数据库操作", tags=["数据库"]),
+            _make_bullet("b2", "数据库操作"),  # same content, no tags
+        ]
+        results = engine.search("数据库", bullets)
+        # b1 with tag match should rank higher
+        assert results[0].bullet_id == "b1"
+        assert results[0].keyword_score > results[1].keyword_score
+
+
+class TestFullModeL4Contribution:
+    """Full 模式下 L4 语义贡献验证。"""
+
+    def test_l4_contribution_changes_ranking(self) -> None:
+        """L4 semantic score can change ranking when keyword scores are equal."""
+        vs = _make_vector_searcher(
+            results=[
+                VectorMatch(bullet_id="b1", score=0.2),
+                VectorMatch(bullet_id="b2", score=0.95),
+            ],
+            available=True,
+        )
+        engine = GeneratorEngine(vector_searcher=vs)
+        # Same keyword content, but different L4 semantic scores
+        bullets = [
+            _make_bullet("b1", "generic technical content"),
+            _make_bullet("b2", "generic technical content"),
+        ]
+        results = engine.search("technical content", bullets)
+        assert len(results) == 2
+        # b2 has much higher semantic score -> should rank first
+        assert results[0].bullet_id == "b2"
+        assert results[0].semantic_score == pytest.approx(0.95)
+
+    def test_full_mode_all_layers_contribute(self) -> None:
+        """All four layers should contribute in full mode."""
+        vs = _make_vector_searcher(
+            results=[VectorMatch(bullet_id="b1", score=0.9)],
+            available=True,
+        )
+        engine = GeneratorEngine(vector_searcher=vs)
+        bullets = [
+            _make_bullet(
+                "b1",
+                "Use git rebase for interactive history editing",
+                tools=["git"],
+                tags=["git"],
+            ),
+        ]
+        results = engine.search("git rebase", bullets)
+        assert len(results) == 1
+        r = results[0]
+        # L1 (exact): "git" and "rebase" -> 30.0
+        # L2 (fuzzy): stems match -> > 0
+        # L3 (metadata): tool "git" + tag "git" -> 7.0
+        # L4 (semantic): 0.9
+        assert r.keyword_score > 30.0  # L1 + L2 + L3
+        assert r.semantic_score == pytest.approx(0.9)
+        assert r.final_score > 0.0
+
+
+class TestDegradedModeIsolation:
+    """降级模式下各 matcher 的独立性。"""
+
+    def test_degraded_l1_only_match(self) -> None:
+        """In degraded mode, only L1 matching when content only has exact matches."""
+        engine = GeneratorEngine()
+        bullets = [_make_bullet("b1", "exactly_this_term_only", days_ago=30)]
+        results = engine.search("exactly_this_term_only", bullets)
+        assert len(results) == 1
+        # Should have L1 exact match score
+        assert results[0].keyword_score > 0.0
+        # No semantic score in degraded
+        assert results[0].semantic_score == 0.0
+
+    def test_degraded_all_layers_independent(self) -> None:
+        """In degraded mode, L1+L2+L3 should all contribute independently."""
+        engine = GeneratorEngine()
+        bullets = [
+            _make_bullet(
+                "b1",
+                "git rebase interactive",
+                tools=["git"],
+                tags=["git"],
+                days_ago=30,
+            ),
+        ]
+        results = engine.search("git", bullets)
+        assert len(results) == 1
+        # L1 contributes (exact "git" match)
+        # L2 contributes (fuzzy "git" match)
+        # L3 contributes (tool "git" + tag "git")
+        # keyword_score should be > 15 (L1 alone)
+        assert results[0].keyword_score > 15.0
+
+
+class TestGeneratorEngineMultiBulletRanking:
+    """多 bullet 综合排序场景。"""
+
+    def test_ten_bullets_ranking(self) -> None:
+        """10 bullets should be ranked correctly with varied content."""
+        engine = GeneratorEngine()
+        bullets = [
+            _make_bullet("b0", "completely unrelated Python stuff"),
+            _make_bullet("b1", "git basics and setup"),
+            _make_bullet("b2", "advanced git rebase techniques", tools=["git"]),
+            _make_bullet("b3", "git rebase interactive squash", tools=["git"], tags=["git"]),
+            _make_bullet("b4", "docker container management"),
+            _make_bullet("b5", "git merge vs rebase comparison", tools=["git"]),
+            _make_bullet("b6", "unrelated machine learning content"),
+            _make_bullet("b7", "git rebase workflow best practices", tags=["git"]),
+            _make_bullet("b8", "database query optimization"),
+            _make_bullet("b9", "git stash and git rebase tips", tools=["git-rebase"]),
+        ]
+        results = engine.search("git rebase", bullets, limit=5)
+        assert len(results) <= 5
+        # Top results should be git-rebase-related bullets
+        top_ids = {r.bullet_id for r in results}
+        assert "b3" in top_ids  # has both keywords + metadata
+        # b0, b4, b6, b8 should not be in top 5
+        for bid in ("b0", "b4", "b6", "b8"):
+            assert bid not in top_ids

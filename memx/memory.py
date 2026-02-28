@@ -2,10 +2,28 @@
 
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
+
+
+def _validate_scope(scope: Optional[str]) -> str:
+    """Validate and normalize a scope string.
+
+    Returns "global" for None or empty string.
+    Raises ValueError for malformed scopes like "project:" without a name.
+    """
+    if scope is None or scope == "":
+        return "global"
+    if scope.startswith("project:") and len(scope) <= len("project:"):
+        raise ValueError(
+            "Scope 'project:' requires a name, e.g., 'project:myapp'"
+        )
+    return scope
 
 
 class Memory:
@@ -18,6 +36,7 @@ class Memory:
     def __init__(self, config: Optional[dict[str, Any]] = None):
         from memx.config import MemXConfig
 
+        logger.debug("Memory.__init__ config=%s", config)
         self._config = MemXConfig.from_dict(config or {})
 
         # Lazy import mem0 to avoid import errors when testing
@@ -38,6 +57,10 @@ class Memory:
         self._retrieval_pipeline: Any = None
         self._sanitizer: Any = None
 
+        # Daemon fallback manager (lazy init when daemon is enabled)
+        self._daemon_fallback: Any = None
+        self._init_daemon_fallback()
+
         if self._config.ace_enabled:
             self._init_ace_engines()
         elif self._config.privacy.always_sanitize:
@@ -51,6 +74,25 @@ class Memory:
                 f"mem0 backend not initialized: {self._mem0_init_error or 'unknown'}"
             )
         return self._mem0
+
+    def _init_daemon_fallback(self) -> None:
+        """Initialize daemon fallback manager if daemon is enabled.
+
+        Pings the daemon to determine initial availability.  If the daemon
+        is unreachable, logs a warning and operates in direct mode.
+        """
+        if not self._config.daemon.enabled:
+            return
+        try:
+            from memx.daemon.fallback import DaemonFallbackManager
+
+            self._daemon_fallback = DaemonFallbackManager(
+                config=self._config.daemon,
+            )
+            self._daemon_fallback.check_initial_availability()
+        except Exception as e:
+            logger.warning("Daemon fallback init failed: %s", e)
+            self._daemon_fallback = None
 
     def _init_sanitizer(self) -> None:
         """Initialize the sanitizer only (for always_sanitize without ACE)."""
@@ -142,9 +184,24 @@ class Memory:
         metadata: Optional[dict[str, Any]] = None,
         filters: Optional[dict[str, Any]] = None,
         prompt: Optional[str] = None,
+        scope: Optional[str] = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
-        """Add memories. ACE mode processes through IngestPipeline."""
+        """Add memories. ACE mode processes through IngestPipeline.
+
+        Args:
+            scope: Hierarchical scope for the memory (e.g., "project:myapp").
+                   Defaults to "global" when None or empty.
+
+        When daemon is enabled and available, routes through DaemonClient.
+        Falls back to direct mode transparently on daemon failure.
+        """
+        effective_scope = _validate_scope(scope)
+        logger.debug(
+            "Memory.add user_id=%s scope=%r ace=%s messages_type=%s",
+            user_id, effective_scope, self._config.ace_enabled,
+            type(messages).__name__,
+        )
         # Sanitize if always_sanitize is on, even in proxy mode
         if (
             not self._config.ace_enabled
@@ -153,7 +210,18 @@ class Memory:
         ):
             messages = self._sanitize_messages(messages)
 
+        # Try daemon path if available
+        _fb = getattr(self, "_daemon_fallback", None)
+        if _fb is not None and _fb.is_available:
+            result = asyncio.run(
+                _fb.try_curate(messages, user_id=user_id or "default")
+            )
+            if result is not None:
+                return result
+            # Daemon failed mid-request, fall through to direct mode
+
         if not self._config.ace_enabled or self._ingest_pipeline is None:
+            logger.debug("Memory.add -> proxy mode (ACE off or pipeline=None)")
             mem0 = self._ensure_mem0()
             return mem0.add(
                 messages,
@@ -167,14 +235,23 @@ class Memory:
             )
 
         # ACE path - delegate to IngestPipeline
+        logger.debug("Memory.add -> ACE ingest pipeline")
         from memx.pipeline.ingest import IngestResult  # noqa: F811
 
+        logger.debug("Memory.add -> IngestPipeline.process scope=%s", effective_scope)
         ingest_result: IngestResult = self._ingest_pipeline.process(
             messages,
             metadata=metadata,
             user_id=user_id,
             agent_id=agent_id,
             run_id=run_id,
+            scope=effective_scope,
+        )
+        logger.debug(
+            "Memory.add result: added=%d merged=%d skipped=%d fallback=%s errors=%s",
+            ingest_result.bullets_added, ingest_result.bullets_merged,
+            ingest_result.bullets_skipped, ingest_result.raw_fallback,
+            ingest_result.errors,
         )
         return {
             "results": [],
@@ -193,10 +270,37 @@ class Memory:
         run_id: Optional[str] = None,
         limit: int = 100,
         filters: Optional[dict[str, Any]] = None,
+        scope: Optional[str] = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
-        """Search memories. ACE mode uses RetrievalPipeline."""
+        """Search memories. ACE mode uses RetrievalPipeline.
+
+        Args:
+            scope: Target scope for search filtering and boosting.
+                   None -> only "global" (backward compatible).
+                   "project:myapp" -> "project:myapp" + "global" merged.
+
+        When daemon is enabled and available, routes through DaemonClient.
+        Falls back to direct mode transparently on daemon failure.
+        """
+        logger.debug(
+            "Memory.search query=%r user_id=%s scope=%r ace=%s limit=%d",
+            query[:60], user_id, scope, self._config.ace_enabled, limit,
+        )
+
+        # Try daemon path if available
+        _fb = getattr(self, "_daemon_fallback", None)
+        if _fb is not None and _fb.is_available:
+            result = asyncio.run(
+                _fb.try_recall(query, user_id=user_id or "default", limit=limit)
+            )
+            if result is not None:
+                # DaemonClient.recall returns list[dict], wrap to match search format
+                return {"results": result}
+            # Daemon failed mid-request, fall through to direct mode
+
         if not self._config.ace_enabled or self._retrieval_pipeline is None:
+            logger.debug("Memory.search -> proxy mode")
             mem0 = self._ensure_mem0()
             return mem0.search(
                 query,
@@ -209,8 +313,10 @@ class Memory:
             )
 
         # ACE path: load bullets and run through RetrievalPipeline
+        logger.debug("Memory.search -> ACE retrieval pipeline")
         try:
             bullets = self._load_bullets_for_search(user_id, agent_id)
+            logger.debug("Memory.search loaded %d bullets for search", len(bullets))
             from memx.pipeline.retrieval import SearchResult
 
             search_result: SearchResult = self._retrieval_pipeline.search(
@@ -220,6 +326,7 @@ class Memory:
                 agent_id=agent_id,
                 limit=limit,
                 filters=filters,
+                scope=scope,
             )
             return {
                 "results": [
@@ -279,23 +386,343 @@ class Memory:
 
     # ---- ACE-specific methods ----------------------------------------------
 
-    def status(self) -> dict[str, Any]:
-        """Get MemX status info."""
-        raise NotImplementedError("status() will be implemented in STORY-041")
+    def status(self, user_id: Optional[str] = None) -> dict[str, Any]:
+        """Get MemX knowledge base statistics.
 
-    def export(self, format: str = "json") -> Any:
-        """Export memories in the specified format."""
-        raise NotImplementedError("export() will be implemented in STORY-044")
+        Returns a dict with total count, section/knowledge_type distributions,
+        average decay_weight, and ACE enabled flag.
+        """
+        kwargs: dict[str, Any] = {}
+        if user_id:
+            kwargs["user_id"] = user_id
 
-    def import_data(self, data: Any, format: str = "json") -> Any:
-        """Import memories from the specified format."""
-        raise NotImplementedError("import_data() will be implemented in STORY-044")
+        raw = self._ensure_mem0().get_all(**kwargs)
+        memories = raw.get("memories", []) if isinstance(raw, dict) else []
+
+        # Count distribution by memx_section
+        sections: dict[str, int] = {}
+        knowledge_types: dict[str, int] = {}
+        total_decay = 0.0
+        count = 0
+
+        for mem in memories:
+            if not isinstance(mem, dict):
+                continue
+            count += 1
+            meta = mem.get("metadata", {})
+            section = meta.get("memx_section", "general")
+            ktype = meta.get("memx_knowledge_type", "knowledge")
+            decay = meta.get("memx_decay_weight", 1.0)
+
+            sections[section] = sections.get(section, 0) + 1
+            knowledge_types[ktype] = knowledge_types.get(ktype, 0) + 1
+            total_decay += float(decay) if decay is not None else 1.0
+
+        avg_decay = round(total_decay / count, 2) if count > 0 else 0.0
+
+        return {
+            "total": count,
+            "ace_enabled": self._config.ace_enabled,
+            "sections": sections,
+            "knowledge_types": knowledge_types,
+            "avg_decay_weight": avg_decay,
+        }
+
+    def detect_conflicts(
+        self, user_id: str | None = None
+    ) -> list[Any]:
+        """Detect contradictory memories in the knowledge base.
+
+        Loads all memories, converts them to ExistingBullet format, and runs
+        the ConflictDetector. Returns a list of Conflict objects.
+
+        Returns an empty list if mem0 is unavailable or no conflicts exist.
+        """
+        from memx.engines.curator.conflict import ConflictDetector
+        from memx.engines.curator.engine import ExistingBullet
+
+        kwargs: dict[str, Any] = {}
+        if user_id:
+            kwargs["user_id"] = user_id
+
+        try:
+            raw = self._ensure_mem0().get_all(**kwargs)
+        except RuntimeError:
+            logger.warning("mem0 unavailable; cannot detect conflicts")
+            return []
+
+        memories_raw = raw.get("memories", []) if isinstance(raw, dict) else []
+
+        existing: list[ExistingBullet] = []
+        for mem in memories_raw:
+            if not isinstance(mem, dict):
+                continue
+            meta = mem.get("metadata", {})
+            existing.append(
+                ExistingBullet(
+                    bullet_id=mem.get("id", ""),
+                    content=mem.get("memory", ""),
+                    scope=meta.get("memx_scope", "global")
+                    if isinstance(meta, dict)
+                    else "global",
+                    metadata=meta if isinstance(meta, dict) else {},
+                )
+            )
+
+        detector = ConflictDetector(self._config.curator)
+        result = detector.detect(existing)
+        return result.conflicts
+
+    def export(
+        self,
+        format: str = "json",
+        scope: Optional[str] = None,
+    ) -> dict[str, Any] | str:
+        """Export all memories in the specified format.
+
+        Args:
+            format: Output format — "json" or "markdown".
+            scope:  If given, only export memories matching this scope.
+
+        Returns:
+            A dict (JSON envelope) or a markdown string depending on *format*.
+        Raises:
+            ValueError: If *format* is unsupported.
+        """
+        logger.debug("Memory.export format=%r scope=%r", format, scope)
+        raw = self.get_all()
+        memories: list[dict[str, Any]] = raw.get("results", [])
+        logger.debug("Memory.export loaded %d raw memories", len(memories))
+
+        if scope is not None:
+            memories = [
+                m
+                for m in memories
+                if isinstance(m, dict)
+                and m.get("metadata", {}).get("memx_scope", "global") == scope
+            ]
+            logger.debug("Memory.export after scope filter: %d memories", len(memories))
+
+        if format == "json":
+            return {
+                "version": "1.0",
+                "exported_at": datetime.now(timezone.utc).isoformat(),
+                "total": len(memories),
+                "memories": memories,
+            }
+        elif format == "markdown":
+            return self._export_markdown(memories)
+        else:
+            raise ValueError(f"Unsupported format: {format}")
+
+    def import_data(
+        self,
+        data: dict[str, Any] | str,
+        format: str = "json",
+    ) -> dict[str, Any]:
+        """Import memories from an export payload.
+
+        Args:
+            data:   A JSON dict/string produced by ``export(format="json")``.
+            format: Only ``"json"`` is supported for import.
+
+        Returns:
+            Summary dict ``{"imported": N, "skipped": N, "merged": N}``.
+        Raises:
+            ValueError: On unsupported format or unparseable JSON.
+        """
+        logger.debug("Memory.import_data format=%r data_type=%s", format, type(data).__name__)
+        if format != "json":
+            raise ValueError(f"Unsupported import format: {format}")
+
+        # Parse string payloads
+        if isinstance(data, str):
+            try:
+                data = json.loads(data)
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"Invalid JSON: {exc}") from exc
+
+        if not isinstance(data, dict):
+            raise ValueError("Import data must be a JSON object")
+
+        memories: list[dict[str, Any]] = data.get("memories", [])
+
+        imported = 0
+        skipped = 0
+        merged = 0
+
+        # Process in batches of 500 for large imports
+        batch_size = 500
+        for batch_start in range(0, max(len(memories), 1), batch_size):
+            batch = memories[batch_start : batch_start + batch_size]
+            if not batch:
+                break
+            for mem in batch:
+                if not isinstance(mem, dict):
+                    skipped += 1
+                    continue
+
+                content = mem.get("memory", "")
+                if not content or not content.strip():
+                    skipped += 1
+                    continue
+
+                # Reconstruct metadata; use defaults for legacy payloads
+                raw_meta = mem.get("metadata", {})
+                if not isinstance(raw_meta, dict):
+                    raw_meta = {}
+
+                # Build CandidateBullet for Curator dedup (ACE path)
+                if self._config.ace_enabled and self._ingest_pipeline is not None:
+                    from memx.types import (
+                        CandidateBullet,
+                        SourceType,
+                    )
+                    from memx.utils.bullet_factory import BulletFactory
+
+                    bullet_meta = BulletFactory.from_export_payload(mem)
+                    meta_obj = bullet_meta["metadata"]
+
+                    candidate = CandidateBullet(
+                        content=content,
+                        distilled_rule=meta_obj.distilled_rule,
+                        section=meta_obj.section,
+                        knowledge_type=meta_obj.knowledge_type,
+                        source_type=SourceType.IMPORT,
+                        instructivity_score=meta_obj.instructivity_score,
+                        key_entities=list(meta_obj.key_entities),
+                        related_tools=list(meta_obj.related_tools),
+                        related_files=list(meta_obj.related_files),
+                        tags=list(meta_obj.tags),
+                        scope=meta_obj.scope,
+                    )
+
+                    # Run through Curator if available
+                    curator = getattr(self._ingest_pipeline, "_curator", None)
+                    if curator is not None:
+                        existing_bullets = self._load_existing_for_import()
+                        curate_result = curator.curate([candidate], existing_bullets)
+
+                        if curate_result.to_skip:
+                            skipped += 1
+                            continue
+                        if curate_result.to_merge:
+                            # Update existing memory with new content
+                            merge_info = curate_result.to_merge[0]
+                            try:
+                                self.update(
+                                    merge_info.existing.bullet_id,
+                                    merge_info.candidate.content,
+                                )
+                                merged += 1
+                            except Exception:
+                                skipped += 1
+                            continue
+
+                    # Insert via add()
+                    try:
+                        mem0_meta = BulletFactory.to_mem0_metadata(meta_obj)
+                        self._ensure_mem0().add(
+                            content,
+                            metadata=mem0_meta,
+                        )
+                        imported += 1
+                    except Exception:
+                        skipped += 1
+                else:
+                    # Non-ACE path: direct insert via mem0
+                    try:
+                        self._ensure_mem0().add(content, metadata=raw_meta)
+                        imported += 1
+                    except Exception:
+                        skipped += 1
+
+        logger.debug(
+            "Memory.import_data result: imported=%d skipped=%d merged=%d",
+            imported, skipped, merged,
+        )
+        return {"imported": imported, "skipped": skipped, "merged": merged}
 
     def run_decay_sweep(self) -> Any:
         """Run a temporal decay sweep across all memories."""
         raise NotImplementedError("run_decay_sweep() will be implemented in STORY-021")
 
     # ---- Internal ----------------------------------------------------------
+
+    def _export_markdown(self, memories: list[dict[str, Any]]) -> str:
+        """Render memories as a human-readable Markdown document.
+
+        Groups memories by their ``memx_section`` metadata field and formats
+        each entry with score, knowledge type, content snippet, and short ID.
+        """
+        now_iso = datetime.now(timezone.utc).isoformat()
+        total = len(memories)
+        lines: list[str] = [
+            "# MemX Knowledge Export",
+            f"> Exported: {now_iso} | Total: {total} memories",
+            "",
+        ]
+
+        # Group by section
+        section_map: dict[str, list[dict[str, Any]]] = {}
+        for mem in memories:
+            if not isinstance(mem, dict):
+                continue
+            meta = mem.get("metadata", {})
+            if not isinstance(meta, dict):
+                meta = {}
+            section = meta.get("memx_section", "general")
+            section_map.setdefault(section, []).append(mem)
+
+        for section_name, section_mems in sorted(section_map.items()):
+            title = section_name.replace("_", " ").title()
+            lines.append(f"## {title} ({len(section_mems)})")
+            for mem in section_mems:
+                meta = mem.get("metadata", {})
+                if not isinstance(meta, dict):
+                    meta = {}
+                score = meta.get("memx_instructivity_score", 50.0)
+                ktype = meta.get("memx_knowledge_type", "knowledge")
+                content = mem.get("memory", "")
+                mid = mem.get("id", "")
+                short_id = mid[:6] if mid else "------"
+                lines.append(
+                    f"- [{score:.2f}] **{ktype}** | {content} `{short_id}`"
+                )
+            lines.append("")
+
+        return "\n".join(lines)
+
+    def _load_existing_for_import(self) -> list[Any]:
+        """Load existing bullets from mem0 for Curator dedup during import.
+
+        Returns a list of ExistingBullet objects. Returns empty list
+        if mem0 get_all is not available or fails.
+        """
+        from memx.engines.curator.engine import ExistingBullet
+
+        try:
+            raw = self._ensure_mem0().get_all()
+            all_mems = raw.get("results", []) if isinstance(raw, dict) else []
+            existing: list[ExistingBullet] = []
+            for mem in all_mems:
+                if not isinstance(mem, dict):
+                    continue
+                mem_meta = mem.get("metadata", {})
+                existing.append(
+                    ExistingBullet(
+                        bullet_id=mem.get("id", ""),
+                        content=mem.get("memory", ""),
+                        scope=mem_meta.get("memx_scope", "global")
+                        if isinstance(mem_meta, dict)
+                        else "global",
+                        metadata=mem_meta if isinstance(mem_meta, dict) else {},
+                    )
+                )
+            return existing
+        except Exception as e:
+            logger.warning("Failed to load existing bullets for import: %s", e)
+            return []
 
     def _load_bullets_for_search(
         self,
@@ -336,6 +763,7 @@ class Memory:
                     ),
                     created_at=bullet_meta.created_at,
                     decay_weight=bullet_meta.decay_weight,
+                    scope=bullet_meta.scope,
                 )
             )
         return bullets
@@ -366,3 +794,11 @@ class Memory:
     def config(self) -> Any:
         """Access the MemX configuration."""
         return self._config
+
+    @property
+    def daemon_available(self) -> bool:
+        """Whether the daemon is currently available for IPC calls."""
+        _fb = getattr(self, "_daemon_fallback", None)
+        if _fb is None:
+            return False
+        return _fb.is_available

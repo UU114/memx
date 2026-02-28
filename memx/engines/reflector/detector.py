@@ -63,14 +63,25 @@ class PatternDetector:
             # Filter: reject code-heavy content
             combined = f"{event.user_message}\n{event.assistant_message}"
             if self._is_code_heavy(combined):
+                logger.debug("PatternDetector: content is code-heavy, skipping")
                 self._history.append(event)
                 return []
 
+            logger.debug(
+                "PatternDetector: checking %d rules (history_len=%d)",
+                len(self._rules), len(self._history),
+            )
             patterns: list[DetectedPattern] = []
             for rule in self._rules:
                 try:
                     if p := rule.check(event, list(self._history)):
+                        logger.debug(
+                            "PatternDetector: rule %s MATCHED (confidence=%.2f content_len=%d)",
+                            rule.name, p.confidence, len(p.content),
+                        )
                         patterns.append(p)
+                    else:
+                        logger.debug("PatternDetector: rule %s -> no match", rule.name)
                 except Exception as e:
                     logger.warning("Rule %s failed: %s", rule.name, e)
 

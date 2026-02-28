@@ -5,7 +5,7 @@ from memx.exceptions import ConfigurationError, EngineError, MemXError, Pipeline
 
 
 def test_version() -> None:
-    assert memx.__version__ == "0.1.0"
+    assert memx.__version__ == "1.0.0"
 
 
 def test_exception_hierarchy() -> None:

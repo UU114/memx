@@ -123,6 +123,7 @@ class RetrievalPipeline:
         agent_id: Optional[str] = None,
         limit: int = 5,
         filters: Optional[dict[str, Any]] = None,
+        scope: Optional[str] = None,
     ) -> SearchResult:
         """Run the full retrieval pipeline.
 
@@ -133,22 +134,34 @@ class RetrievalPipeline:
             agent_id: Optional agent ID for scoping.
             limit:    Maximum number of results to return.
             filters:  Optional filters for vector search.
+            scope:    Target scope for filtering and boosting.
 
         Returns:
             SearchResult with trimmed results, operating mode, and candidate count.
         """
+        logger.debug(
+            "RetrievalPipeline.search query=%r bullets=%d limit=%d scope=%r",
+            query[:60] if query else "", len(bullets or []), limit, scope,
+        )
         if not query:
+            logger.debug("RetrievalPipeline.search -> empty query, returning empty")
             return SearchResult(results=[], mode="full", total_candidates=0)
 
         # Step 1: Run GeneratorEngine
+        logger.debug("RetrievalPipeline step 1: GeneratorEngine.search()")
         try:
             scored = self._generator.search(
                 query=query,
                 bullets=bullets or [],
                 limit=limit * 4,  # Over-fetch for trimming headroom
                 filters=filters,
+                scope=scope,
             )
             generator_mode = self._generator.mode
+            logger.debug(
+                "RetrievalPipeline step 1: %d results, mode=%s",
+                len(scored), generator_mode,
+            )
         except Exception as exc:
             logger.warning(
                 "GeneratorEngine failed, falling back to mem0 search: %s", exc
@@ -163,10 +176,14 @@ class RetrievalPipeline:
         total_candidates = len(scored)
 
         # Step 2: TokenBudgetTrimmer
+        logger.debug("RetrievalPipeline step 2: trimmer (budget=%s)",
+                      self._trimmer._token_budget if self._trimmer else "N/A")
         trimmed = self._run_trimmer(scored)
+        logger.debug("RetrievalPipeline step 2: trimmed %d -> %d", len(scored), len(trimmed))
 
         # Step 3: Async reinforcement (fire-and-forget)
         hit_ids = [b.bullet_id for b in trimmed]
+        logger.debug("RetrievalPipeline step 3: reinforce %d bullet(s)", len(hit_ids))
         self._run_reinforcer(hit_ids)
 
         # Determine final mode

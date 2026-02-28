@@ -360,4 +360,127 @@ class TestExactMatcherPerformance:
         elapsed_ms = (time.perf_counter() - start) * 1000
 
         assert len(results) == 5000
-        assert elapsed_ms < 50, f"Batch took {elapsed_ms:.1f}ms, expected < 50ms"
+        assert elapsed_ms < 50, f"Chinese batch took {elapsed_ms:.1f}ms, expected < 50ms"
+
+
+# ── STORY-031 补充测试：特殊字符、中英混合边界、模式缓存 ──────────────
+
+
+class TestExactMatcherSpecialChars:
+    """特殊字符输入不应导致崩溃或误匹配。"""
+
+    def test_regex_special_chars_in_query(self) -> None:
+        """Query containing regex metacharacters should not raise."""
+        m = ExactMatcher()
+        # Characters like .+*?[](){}^$| are regex-special
+        # "c++" -> tokenized to just "c" since split only captures [A-Za-z0-9_]+
+        result = m.match("c++", "Use C++ for systems programming")
+        assert isinstance(result, MatchResult)
+
+    def test_brackets_and_parentheses(self) -> None:
+        """Brackets in query should not raise regex errors."""
+        m = ExactMatcher()
+        result = m.match("[array]", "Use array methods carefully")
+        assert isinstance(result, MatchResult)
+
+    def test_unicode_emoji_in_content(self) -> None:
+        """Emoji characters should not crash the matcher."""
+        m = ExactMatcher()
+        result = m.match("git", "Use git for version control \U0001F680")
+        assert result.score == 15.0
+        assert "git" in result.matched_terms
+
+    def test_newlines_in_content(self) -> None:
+        """Content with newlines should still match keywords."""
+        m = ExactMatcher()
+        result = m.match("git", "Use\ngit\nfor version control")
+        assert result.score == 15.0
+
+    def test_tabs_in_content(self) -> None:
+        """Content with tab characters should still match."""
+        m = ExactMatcher()
+        result = m.match("git", "Use\tgit\tfor version control")
+        assert result.score == 15.0
+
+
+class TestExactMatcherPatternCache:
+    """模式缓存应正确重用已编译的正则。"""
+
+    def test_pattern_cache_reuse(self) -> None:
+        """Same token should reuse cached pattern across multiple calls."""
+        m = ExactMatcher()
+        r1 = m.match("git", "Use git here")
+        r2 = m.match("git", "git rebase")
+        assert r1.score == 15.0
+        assert r2.score == 15.0
+        assert "git" in m._pattern_cache
+
+    def test_different_tokens_different_patterns(self) -> None:
+        """Different tokens should compile separate patterns."""
+        m = ExactMatcher()
+        m.match("git", "git usage")
+        m.match("python", "python usage")
+        assert "git" in m._pattern_cache
+        assert "python" in m._pattern_cache
+        assert len(m._pattern_cache) >= 2
+
+
+class TestExactMatcherCJKEdgeCases:
+    """中文边界用例补充。"""
+
+    def test_rare_cjk_extension_b(self) -> None:
+        """CJK Extension B characters (U+20000+) should be handled."""
+        m = ExactMatcher()
+        rare = "\U00020000\U00020001"
+        result = m.match(rare, f"content with {rare} inside")
+        assert result.score == 15.0
+
+    def test_mixed_cjk_punctuation_split(self) -> None:
+        """Chinese punctuation between CJK runs creates separate segments."""
+        # Query: "数据，库" -> comma splits CJK runs
+        en, zh = tokenize_query("数据，库")
+        assert "数据" in zh
+        assert "库" in zh
+
+    def test_long_chinese_query(self) -> None:
+        """Long Chinese queries should match when content contains the full segment."""
+        m = ExactMatcher()
+        # The entire query is one CJK segment: "使用数据库连接池进行高效率查询优化"
+        # Content must contain this exact substring for ExactMatcher to match
+        query = "使用数据库连接池进行高效率查询优化"
+        result = m.match(query, "推荐使用数据库连接池进行高效率查询优化的方法")
+        assert result.score > 0.0
+
+    def test_chinese_segment_multiple_occurrences(self) -> None:
+        """Chinese segment appearing multiple times records all positions."""
+        m = ExactMatcher()
+        result = m.match("数据", "数据分析和数据管理")
+        assert result.score == 15.0
+        positions = result.details["positions"]["数据"]
+        assert len(positions) == 2
+
+
+class TestExactMatcherMixedBoundary:
+    """中英混合边界补充。"""
+
+    def test_english_embedded_in_chinese(self) -> None:
+        """English word within Chinese text should match via word-boundary."""
+        m = ExactMatcher()
+        result = m.match("git", "使用git进行版本控制")
+        assert "git" in result.matched_terms
+        assert result.score >= 15.0
+
+    def test_multiple_english_in_chinese(self) -> None:
+        """Multiple English words in Chinese text should each be matchable."""
+        m = ExactMatcher()
+        result = m.match("git rebase", "用git做rebase操作")
+        assert "git" in result.matched_terms
+        assert "rebase" in result.matched_terms
+        assert result.score == 30.0
+
+    def test_query_all_stopwords(self) -> None:
+        """Query with only stopwords should produce zero score."""
+        m = ExactMatcher()
+        result = m.match("the and or but", "the best and finest")
+        assert result.score == 0.0
+        assert result.matched_terms == []

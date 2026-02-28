@@ -68,6 +68,19 @@ class BulletFactory:
         return BulletMetadata.model_validate(bullet_fields)
 
     @staticmethod
+    def from_export_payload(mem: dict[str, Any]) -> dict[str, Any]:
+        """Reconstruct a memory record from an export payload dict.
+
+        Accepts a single memory entry from an export JSON (which preserves
+        the raw mem0 structure including ``metadata`` with ``memx_`` keys).
+        Returns ``{"content": str, "metadata": BulletMetadata}`` suitable
+        for re-ingestion.  Falls back to defaults for missing fields.
+        """
+        content: str = mem.get("memory", "")
+        bullet_meta = BulletFactory.from_mem0_payload(mem)
+        return {"content": content, "metadata": bullet_meta}
+
+    @staticmethod
     def merge_metadata(
         existing: BulletMetadata, update: dict[str, Any]
     ) -> BulletMetadata:

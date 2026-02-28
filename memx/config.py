@@ -50,6 +50,8 @@ class CuratorConfig(BaseModel):
     similarity_threshold: float = Field(default=0.8, ge=0.0, le=1.0)
     merge_strategy: str = "keep_best"  # "keep_best" | "merge_content"
     conflict_detection: bool = False
+    conflict_min_similarity: float = Field(default=0.5, ge=0.0, le=1.0)
+    conflict_max_similarity: float = Field(default=0.8, ge=0.0, le=1.0)
 
 
 class DecayConfig(BaseModel):
@@ -70,6 +72,7 @@ class RetrievalConfig(BaseModel):
     semantic_weight: float = Field(default=0.4, ge=0.0)
     recency_boost_days: int = Field(default=7, ge=0)
     recency_boost_factor: float = Field(default=1.2, ge=1.0)
+    scope_boost: float = Field(default=1.3, ge=1.0)
     max_results: int = Field(default=5, gt=0)
     token_budget: int = Field(default=2000, gt=0)
 
@@ -88,6 +91,7 @@ class IntegrationConfig(BaseModel):
     auto_recall: bool = True
     auto_reflect: bool = True
     sweep_on_exit: bool = True
+    context_template: str = "xml"  # "xml" | "markdown" | "plain"
 
 
 class DaemonConfig(BaseModel):
@@ -163,8 +167,20 @@ class MemXConfig(BaseModel):
             else:
                 mem0_fields[key] = value
         ace_fields["mem0_config"] = mem0_fields
+        logger.debug(
+            "MemXConfig.from_dict: ace_keys=%s mem0_keys=%s",
+            sorted(ace_fields.keys() - {"mem0_config"}),
+            sorted(mem0_fields.keys()),
+        )
         try:
-            return cls.model_validate(ace_fields)
+            cfg = cls.model_validate(ace_fields)
+            logger.debug(
+                "MemXConfig created: ace_enabled=%s reflector.mode=%s "
+                "curator.threshold=%.2f decay.half_life=%.1f",
+                cfg.ace_enabled, cfg.reflector.mode,
+                cfg.curator.similarity_threshold, cfg.decay.half_life_days,
+            )
+            return cfg
         except Exception as e:
             raise ConfigurationError(f"Invalid configuration: {e}") from e
 

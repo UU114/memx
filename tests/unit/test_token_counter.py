@@ -301,3 +301,93 @@ class TestTrimIntegration:
         assert len(trimmed) == 2
         assert trimmed[0].bullet_id == "b1"
         assert trimmed[1].bullet_id == "b2"
+
+
+# ── STORY-031 补充测试：CJK 估算精度、负预算、边界 ────────────────────
+
+
+class TestEstimateTokensCJKPrecision:
+    """CJK 估算精度补充验证。"""
+
+    def test_three_cjk_chars(self) -> None:
+        """3 CJK chars / 1.5 = 2.0 tokens."""
+        trimmer = TokenBudgetTrimmer()
+        assert trimmer.estimate_tokens("数据库") == 2
+
+    def test_ten_cjk_chars(self) -> None:
+        """10 CJK chars / 1.5 = 6.666... -> int(6.666) = 6."""
+        trimmer = TokenBudgetTrimmer()
+        result = trimmer.estimate_tokens("一二三四五六七八九十")
+        assert result == 6
+
+    def test_one_cjk_char(self) -> None:
+        """1 CJK char / 1.5 = 0.666... -> int = 0."""
+        trimmer = TokenBudgetTrimmer()
+        assert trimmer.estimate_tokens("数") == 0
+
+    def test_two_cjk_chars(self) -> None:
+        """2 CJK chars / 1.5 = 1.333... -> int = 1."""
+        trimmer = TokenBudgetTrimmer()
+        assert trimmer.estimate_tokens("数据") == 1
+
+    def test_cjk_with_spaces(self) -> None:
+        """CJK mixed with spaces: spaces are non-CJK."""
+        trimmer = TokenBudgetTrimmer(chars_per_token=4.0)
+        # "数据 库" = 2 CJK + 1 space + 1 CJK = 3 CJK + 1 non-CJK
+        # CJK tokens: 3/1.5 = 2.0
+        # Non-CJK tokens: 1/4.0 = 0.25
+        # Total: 2.25 -> int = 2
+        assert trimmer.estimate_tokens("数据 库") == 2
+
+
+class TestTrimNegativeBudget:
+    """负预算和零预算的行为。"""
+
+    def test_negative_budget_still_returns_one(self) -> None:
+        """Negative budget should still guarantee at least 1 result."""
+        trimmer = TokenBudgetTrimmer(token_budget=-10)
+        results = [_bullet("b1", "some content", final_score=1.0)]
+        trimmed = trimmer.trim(results)
+        assert len(trimmed) == 1
+
+    def test_max_results_one(self) -> None:
+        """max_results=1 should return exactly 1 result."""
+        trimmer = TokenBudgetTrimmer(token_budget=10000, max_results=1)
+        results = [
+            _bullet("b1", "aaa", final_score=3.0),
+            _bullet("b2", "bbb", final_score=2.0),
+            _bullet("b3", "ccc", final_score=1.0),
+        ]
+        trimmed = trimmer.trim(results)
+        assert len(trimmed) == 1
+        assert trimmed[0].bullet_id == "b1"
+
+
+class TestTrimCJKBudgetPrecision:
+    """CJK 内容的 budget 精确消耗。"""
+
+    def test_cjk_budget_exact_fit(self) -> None:
+        """CJK content that exactly fills budget should be included."""
+        # 3 CJK chars -> 3/1.5 = 2 tokens
+        trimmer = TokenBudgetTrimmer(token_budget=4, max_results=10)
+        results = [
+            _bullet("b1", "数据库", final_score=2.0),  # 2 tokens
+            _bullet("b2", "管理系", final_score=1.0),  # 2 tokens
+        ]
+        trimmed = trimmer.trim(results)
+        # b1: 2 tokens (cumulative=2, fits)
+        # b2: 2 tokens (cumulative=4, fits exactly)
+        assert len(trimmed) == 2
+
+    def test_cjk_budget_exceed_by_one(self) -> None:
+        """CJK content exceeding budget by 1 token should stop."""
+        # 6 CJK chars -> 6/1.5 = 4 tokens
+        trimmer = TokenBudgetTrimmer(token_budget=5, max_results=10)
+        results = [
+            _bullet("b1", "数据库管理系", final_score=2.0),  # 4 tokens
+            _bullet("b2", "数据库管理系", final_score=1.0),  # 4 tokens
+        ]
+        trimmed = trimmer.trim(results)
+        # b1: 4 tokens (cumulative=4, fits)
+        # b2: 4 tokens (cumulative=8 > 5, stop)
+        assert len(trimmed) == 1

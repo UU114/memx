@@ -53,12 +53,19 @@ class PrivacySanitizer:
         if not content:
             return SanitizeResult(clean_content=content, was_modified=False)
 
+        logger.debug("PrivacySanitizer.sanitize: input_len=%d patterns=%d", len(content), len(self._patterns))
         filtered: list[FilteredItem] = []
         clean = content
 
         for name, pattern, replacement in self._patterns:
             # Find all matches first (for reporting)
-            for match in pattern.finditer(clean):
+            matches_for_pattern = list(pattern.finditer(clean))
+            if matches_for_pattern:
+                logger.debug(
+                    "PrivacySanitizer: pattern '%s' matched %d time(s)",
+                    name, len(matches_for_pattern),
+                )
+            for match in matches_for_pattern:
                 snippet = self._truncate_match(match.group())
                 filtered.append(
                     FilteredItem(
@@ -69,6 +76,14 @@ class PrivacySanitizer:
                 )
             # Then replace
             clean = pattern.sub(replacement, clean)
+
+        if filtered:
+            logger.debug(
+                "PrivacySanitizer.sanitize: redacted %d item(s): %s",
+                len(filtered), [f.pattern_name for f in filtered],
+            )
+        else:
+            logger.debug("PrivacySanitizer.sanitize: content clean (no matches)")
 
         return SanitizeResult(
             clean_content=clean,

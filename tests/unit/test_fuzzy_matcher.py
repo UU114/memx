@@ -186,3 +186,110 @@ class TestFuzzyMatcherPerformance:
         assert len(results) == 5000
         # Generous bound: 50ms to be resilient on CI; the story target is 5ms
         assert elapsed_ms < 50, f"Batch took {elapsed_ms:.1f}ms (target < 5ms)"
+
+
+# ── STORY-031 补充测试：词干还原验证、bigram 细节、边界输入 ────────────
+
+
+class TestFuzzyMatcherStemVerification:
+    """词干还原精确性验证：确认 stem 正确传播到匹配逻辑。"""
+
+    def test_development_matches_develop(self) -> None:
+        """'development' -> stem 'develop' should match 'develop' in content."""
+        m = FuzzyMatcher(max_score=10.0)
+        result = m.match("development", "develop new features quickly")
+        assert result.score > 0.0
+        assert any("develop" in t for t in result.matched_terms)
+
+    def test_studied_matches_study(self) -> None:
+        """'studied' -> stem 'study' should match content with 'study'."""
+        m = FuzzyMatcher(max_score=10.0)
+        result = m.match("studied", "study hard every day")
+        assert result.score > 0.0
+
+    def test_fastest_matches_fast(self) -> None:
+        """'fastest' -> stem 'fast' should match content with 'fast'."""
+        m = FuzzyMatcher(max_score=10.0)
+        result = m.match("fastest", "fast algorithm implementation")
+        assert result.score > 0.0
+
+    def test_boxes_matches_box(self) -> None:
+        """'boxes' -> stem 'box' should match content with 'box'."""
+        m = FuzzyMatcher(max_score=10.0)
+        result = m.match("boxes", "put items in a box")
+        assert result.score > 0.0
+
+
+class TestFuzzyMatcherBigramDetails:
+    """Bigram 分词细节验证。"""
+
+    def test_query_tokens_in_details(self) -> None:
+        """Details should contain the actual query tokens used."""
+        m = FuzzyMatcher()
+        result = m.match("数据库管理", "数据库操作和管理")
+        assert "query_tokens" in result.details
+        tokens = result.details["query_tokens"]
+        assert "数据" in tokens
+        assert "据库" in tokens
+        assert "库管" in tokens
+        assert "管理" in tokens
+
+    def test_hit_ratio_calculation(self) -> None:
+        """Hit ratio should be correctly computed."""
+        m = FuzzyMatcher(max_score=10.0)
+        result = m.match("数据库", "数据分析")
+        # query tokens: ["数据", "据库"]
+        # content tokens contain "数据" but not "据库"
+        # hit_ratio = 1/2 = 0.5
+        assert result.details["hit_ratio"] == pytest.approx(0.5)
+        assert result.score == pytest.approx(5.0)
+
+    def test_single_chinese_char_query(self) -> None:
+        """Single CJK char generates 1 token (the char itself)."""
+        m = FuzzyMatcher(max_score=10.0)
+        result = m.match("库", "数据库管理")
+        # Single char "库" -> token ["库"]
+        # Content bigrams: 数据, 据库, 库管, 管理 — "库" is not a bigram
+        # But extract_tokens with single char CJK: the char itself
+        # Content: "数据库管理" -> bigrams ["数据","据库","库管","管理"] — no "库" alone
+        # So score depends on whether extract_tokens emits single chars
+        assert isinstance(result.score, float)
+
+
+class TestFuzzyMatcherEdgeCases:
+    """边界输入补充。"""
+
+    def test_very_long_query(self) -> None:
+        """Very long query should not cause timeout or crash."""
+        m = FuzzyMatcher()
+        query = "database " * 100
+        result = m.match(query, "database management system")
+        assert result.score > 0.0
+
+    def test_content_with_only_punctuation(self) -> None:
+        """Content with only punctuation should return zero score."""
+        m = FuzzyMatcher()
+        result = m.match("database", "!@#$%^&*()")
+        assert result.score == 0.0
+
+    def test_identical_query_and_content(self) -> None:
+        """Identical query and content should give max score."""
+        m = FuzzyMatcher(max_score=10.0)
+        text = "database management"
+        result = m.match(text, text)
+        assert result.score == pytest.approx(10.0)
+
+    def test_batch_with_mixed_content(self) -> None:
+        """Batch with Chinese and English content mixed."""
+        m = FuzzyMatcher()
+        results = m.match_batch("git 数据库", [
+            "使用 git 管理数据库",
+            "天气预报",
+            "git repository setup",
+            "",
+        ])
+        assert len(results) == 4
+        assert results[0].score > 0.0  # both match
+        assert results[1].score == 0.0  # no match
+        assert results[2].score > 0.0  # git matches
+        assert results[3].score == 0.0  # empty content

@@ -374,3 +374,108 @@ class TestCaseInsensitivity:
         matcher = MetadataMatcher()
         result = matcher.match("Python", _meta(tags=["PYTHON"]))
         assert result.tags_score == 3.0
+
+
+# ── STORY-031 补充测试：中文 token 匹配、多字段交叉、空 metadata ──────
+
+
+class TestChineseMetadataTokens:
+    """中文查询在 metadata 字段中的匹配行为。"""
+
+    def test_chinese_tool_prefix_match(self) -> None:
+        """Chinese tool name should match via prefix."""
+        matcher = MetadataMatcher()
+        result = matcher.match("数据", _meta(tools=["数据库管理工具"]))
+        assert result.tools_score == 4.0
+        assert "数据库管理工具" in result.matched_tools
+
+    def test_chinese_entity_prefix_match(self) -> None:
+        """Chinese entity should match via prefix."""
+        matcher = MetadataMatcher()
+        result = matcher.match("机器", _meta(entities=["机器学习"]))
+        assert result.entities_score == 3.0
+        assert "机器学习" in result.matched_entities
+
+    def test_chinese_tag_exact_match(self) -> None:
+        """Chinese tag should match exactly (case is N/A for Chinese)."""
+        matcher = MetadataMatcher()
+        result = matcher.match("算法", _meta(tags=["算法"]))
+        assert result.tags_score == 3.0
+        assert "算法" in result.matched_tags
+
+    def test_chinese_tag_no_prefix_match(self) -> None:
+        """Chinese tag 'python' should NOT match tag '算法优化' (no prefix)."""
+        matcher = MetadataMatcher()
+        result = matcher.match("算法", _meta(tags=["算法优化"]))
+        # Tags use exact match, not prefix
+        assert result.tags_score == 0.0
+
+    def test_mixed_chinese_english_query(self) -> None:
+        """Mixed Chinese/English query tokens both participate."""
+        matcher = MetadataMatcher()
+        result = matcher.match(
+            "git 数据库",
+            _meta(tools=["git-rebase"], entities=["数据库引擎"]),
+        )
+        assert result.tools_score == 4.0
+        assert result.entities_score == 3.0
+
+
+class TestMultiFieldCrossMatching:
+    """多字段交叉匹配场景。"""
+
+    def test_same_token_matches_all_fields(self) -> None:
+        """Same token can match across tools, entities, and tags simultaneously."""
+        matcher = MetadataMatcher()
+        meta = _meta(tools=["python-linter"], entities=["Python"], tags=["python"])
+        result = matcher.match("python", meta)
+        assert result.tools_score == 4.0
+        assert result.entities_score == 3.0
+        assert result.tags_score == 3.0
+        assert result.score == 10.0
+
+    def test_different_tokens_match_different_fields(self) -> None:
+        """Different query tokens can each match different metadata fields."""
+        matcher = MetadataMatcher()
+        meta = _meta(tools=["docker"], entities=["React"], tags=["python"])
+        result = matcher.match("docker react python", meta)
+        assert result.score == 10.0
+
+    def test_no_cross_contamination(self) -> None:
+        """A tool match should NOT affect entity or tag scores."""
+        matcher = MetadataMatcher()
+        result = matcher.match("git", _meta(tools=["git"], entities=[], tags=[]))
+        assert result.tools_score == 4.0
+        assert result.entities_score == 0.0
+        assert result.tags_score == 0.0
+
+
+class TestMetadataMatcherEdgeCases:
+    """Metadata matcher 边界补充。"""
+
+    def test_very_long_tool_list(self) -> None:
+        """Large number of tools should not cause issues."""
+        matcher = MetadataMatcher()
+        tools = [f"tool-{i}" for i in range(100)]
+        result = matcher.match("tool-50", _meta(tools=tools))
+        assert result.tools_score == 4.0
+        assert "tool-50" in result.matched_tools
+
+    def test_separator_in_query(self) -> None:
+        """Various separators in query should tokenize correctly."""
+        matcher = MetadataMatcher()
+        result = matcher.match("git|docker/python", _meta(tools=["git"], tags=["python"]))
+        assert result.tools_score == 4.0
+        assert result.tags_score == 3.0
+
+    def test_frozen_metadata_info(self) -> None:
+        """MetadataInfo is frozen and cannot be mutated after creation."""
+        meta = MetadataInfo(related_tools=["git"])
+        import dataclasses
+        assert dataclasses.is_dataclass(meta)
+        # frozen=True means attribute assignment raises
+        try:
+            meta.related_tools = ["python"]  # type: ignore[misc]
+            assert False, "Should have raised FrozenInstanceError"
+        except (dataclasses.FrozenInstanceError, AttributeError):
+            pass

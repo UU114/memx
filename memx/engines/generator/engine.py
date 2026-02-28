@@ -50,6 +50,7 @@ class BulletForSearch:
         metadata:     Structured metadata for L3 matching.
         created_at:   Creation timestamp for recency boost.
         decay_weight: Pre-computed decay weight from DecayEngine [0.0, 1.0].
+        scope:        Hierarchical scope for this bullet (default "global").
         extra:        Additional pass-through metadata for the ScoredBullet.
     """
 
@@ -58,6 +59,7 @@ class BulletForSearch:
     metadata: MetadataInfo = field(default_factory=MetadataInfo)
     created_at: datetime | None = None
     decay_weight: float = 1.0
+    scope: str = "global"
     extra: dict[str, Any] = field(default_factory=dict)
 
 
@@ -103,6 +105,7 @@ class GeneratorEngine:
         bullets: list[BulletForSearch],
         limit: int = 20,
         filters: dict[str, Any] | None = None,
+        scope: str | None = None,
     ) -> list[ScoredBullet]:
         """Run the full hybrid retrieval pipeline.
 
@@ -114,6 +117,8 @@ class GeneratorEngine:
             bullets: List of bullets to search against.
             limit:   Maximum number of results to return.
             filters: Optional filters passed to VectorSearcher.
+            scope:   Target scope for filtering. When set, only bullets
+                     matching this scope or "global" are included.
 
         Returns:
             List of ScoredBullet sorted by final_score descending,
@@ -121,6 +126,15 @@ class GeneratorEngine:
         """
         if not query or not bullets:
             return []
+
+        # Scope filtering: keep only bullets matching the target scope or "global"
+        if scope:
+            bullets = [
+                b for b in bullets
+                if b.scope == scope or b.scope == "global"
+            ]
+            if not bullets:
+                return []
 
         # Determine current operating mode
         is_full = self._vector_searcher.available
@@ -177,11 +191,14 @@ class GeneratorEngine:
                 content=bullet.content,
                 created_at=bullet.created_at,
                 decay_weight=bullet.decay_weight,
+                scope=bullet.scope,
                 metadata=dict(bullet.extra),
             )
 
         # -- Merge and rank ----------------------------------------------------
-        scored = self._score_merger.merge(keyword_results, semantic_results, bullet_infos)
+        scored = self._score_merger.merge(
+            keyword_results, semantic_results, bullet_infos, target_scope=scope,
+        )
 
         return scored[:limit]
 
