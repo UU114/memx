@@ -29,7 +29,7 @@ _VALID_REFLECTOR_MODES = frozenset({"rules", "llm", "hybrid"})
 class ReflectorConfig(BaseModel):
     """Configuration for the Reflector engine."""
 
-    mode: str = "rules"  # "rules" | "llm" | "hybrid"
+    mode: str = "hybrid"  # "rules" | "llm" | "hybrid"
     min_score: float = Field(default=30.0, ge=0.0, le=100.0)
     max_content_length: int = Field(default=500, gt=0)
     max_code_lines: int = Field(default=3, gt=0)
