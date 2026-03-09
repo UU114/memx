@@ -1,4 +1,4 @@
-"""Unit tests for memx.ext.team_bootstrap — conditional Team Layer injection.
+"""Unit tests for memorus.ext.team_bootstrap — conditional Team Layer injection.
 
 Covers all branches:
   - Team package not installed (ImportError)
@@ -36,7 +36,7 @@ def _make_mock_memory(**kwargs: Any) -> SimpleNamespace:
 
 def _make_team_config(enabled: bool = False, server_url: str | None = None) -> Any:
     """Create a minimal TeamConfig-like object."""
-    from memx.team.config import TeamConfig
+    from memorus.team.config import TeamConfig
 
     return TeamConfig(enabled=enabled, server_url=server_url)
 
@@ -49,35 +49,35 @@ class TestTryBootstrapTeam:
     """Tests for the top-level try_bootstrap_team function."""
 
     def test_team_not_installed_returns_false(self) -> None:
-        """When memx.team.config cannot be imported, returns False silently."""
-        from memx.ext.team_bootstrap import try_bootstrap_team
+        """When memorus.team.config cannot be imported, returns False silently."""
+        from memorus.ext.team_bootstrap import try_bootstrap_team
 
         memory = _make_mock_memory()
 
-        # Temporarily hide memx.team.config from the import system
-        saved_config = sys.modules.get("memx.team.config")
-        saved_bootstrap = sys.modules.get("memx.ext.team_bootstrap")
-        sys.modules["memx.team.config"] = None  # type: ignore[assignment]
+        # Temporarily hide memorus.team.config from the import system
+        saved_config = sys.modules.get("memorus.team.config")
+        saved_bootstrap = sys.modules.get("memorus.ext.team_bootstrap")
+        sys.modules["memorus.team.config"] = None  # type: ignore[assignment]
         # Remove cached bootstrap module so reload picks up the blocked import
-        sys.modules.pop("memx.ext.team_bootstrap", None)
+        sys.modules.pop("memorus.ext.team_bootstrap", None)
         try:
-            import memx.ext.team_bootstrap as tb_mod
+            import memorus.ext.team_bootstrap as tb_mod
 
             result = tb_mod.try_bootstrap_team(memory)
             assert result is False
         finally:
             if saved_config is not None:
-                sys.modules["memx.team.config"] = saved_config
+                sys.modules["memorus.team.config"] = saved_config
             else:
-                sys.modules.pop("memx.team.config", None)
+                sys.modules.pop("memorus.team.config", None)
             # Restore bootstrap module
-            sys.modules.pop("memx.ext.team_bootstrap", None)
+            sys.modules.pop("memorus.ext.team_bootstrap", None)
             if saved_bootstrap is not None:
-                sys.modules["memx.ext.team_bootstrap"] = saved_bootstrap
+                sys.modules["memorus.ext.team_bootstrap"] = saved_bootstrap
 
     def test_team_not_enabled_no_git_fallback_returns_false(self) -> None:
         """When Team is installed but not enabled and no Git Fallback, returns False."""
-        from memx.ext import team_bootstrap
+        from memorus.ext import team_bootstrap
 
         memory = _make_mock_memory()
 
@@ -87,7 +87,7 @@ class TestTryBootstrapTeam:
             return_value=False,
         ):
             with patch(
-                "memx.team.config.load_team_config",
+                "memorus.team.config.load_team_config",
                 return_value=_make_team_config(enabled=False),
             ):
                 result = team_bootstrap.try_bootstrap_team(memory)
@@ -96,7 +96,7 @@ class TestTryBootstrapTeam:
 
     def test_team_enabled_with_git_fallback(self) -> None:
         """When Git Fallback is detected, Team is bootstrapped."""
-        from memx.ext import team_bootstrap
+        from memorus.ext import team_bootstrap
 
         memory = _make_mock_memory()
 
@@ -117,7 +117,7 @@ class TestTryBootstrapTeam:
 
     def test_team_enabled_explicit_config(self) -> None:
         """When team_config.enabled=True, bootstraps Team."""
-        from memx.ext import team_bootstrap
+        from memorus.ext import team_bootstrap
 
         memory = _make_mock_memory()
 
@@ -133,7 +133,7 @@ class TestTryBootstrapTeam:
             ) as mock_build:
                 enabled_cfg = _make_team_config(enabled=True)
                 with patch(
-                    "memx.team.config.load_team_config",
+                    "memorus.team.config.load_team_config",
                     return_value=enabled_cfg,
                 ):
                     result = team_bootstrap.try_bootstrap_team(memory)
@@ -142,7 +142,7 @@ class TestTryBootstrapTeam:
 
     def test_bootstrap_exception_returns_false(self) -> None:
         """When bootstrap throws any exception, returns False (Core unaffected)."""
-        from memx.ext import team_bootstrap
+        from memorus.ext import team_bootstrap
 
         memory = _make_mock_memory()
 
@@ -157,7 +157,7 @@ class TestTryBootstrapTeam:
 
     def test_retriever_injected_into_pipeline(self) -> None:
         """When bootstrap succeeds, retriever is set on pipeline."""
-        from memx.ext import team_bootstrap
+        from memorus.ext import team_bootstrap
 
         pipeline = MagicMock()
         memory = _make_mock_memory(pipeline=pipeline)
@@ -180,7 +180,7 @@ class TestTryBootstrapTeam:
 
     def test_no_pipeline_stores_retriever_for_deferred(self) -> None:
         """When pipeline is None, retriever is stored on memory for later."""
-        from memx.ext import team_bootstrap
+        from memorus.ext import team_bootstrap
 
         memory = _make_mock_memory(pipeline=None)
 
@@ -202,7 +202,7 @@ class TestTryBootstrapTeam:
 
     def test_build_returns_none_still_returns_true(self) -> None:
         """When _build returns None (no pools), still returns True (Team detected)."""
-        from memx.ext import team_bootstrap
+        from memorus.ext import team_bootstrap
 
         memory = _make_mock_memory()
 
@@ -223,7 +223,7 @@ class TestTryBootstrapTeam:
 
     def test_custom_config_path_forwarded(self) -> None:
         """When config_path is provided, it is forwarded to load_team_config."""
-        from memx.ext import team_bootstrap
+        from memorus.ext import team_bootstrap
 
         memory = _make_mock_memory()
 
@@ -233,7 +233,7 @@ class TestTryBootstrapTeam:
             return_value=False,
         ):
             with patch(
-                "memx.team.config.load_team_config",
+                "memorus.team.config.load_team_config",
                 return_value=_make_team_config(enabled=False),
             ) as mock_load:
                 team_bootstrap.try_bootstrap_team(
@@ -252,7 +252,7 @@ class TestDetectGitFallback:
 
     def test_playbook_exists_returns_true(self, tmp_path: Path) -> None:
         """Returns True when .ace/playbook.jsonl exists."""
-        from memx.ext.team_bootstrap import _detect_git_fallback
+        from memorus.ext.team_bootstrap import _detect_git_fallback
 
         ace_dir = tmp_path / ".ace"
         ace_dir.mkdir()
@@ -260,21 +260,21 @@ class TestDetectGitFallback:
         # Also create .git to stop traversal
         (tmp_path / ".git").mkdir()
 
-        with patch("memx.ext.team_bootstrap.Path.cwd", return_value=tmp_path):
+        with patch("memorus.ext.team_bootstrap.Path.cwd", return_value=tmp_path):
             assert _detect_git_fallback() is True
 
     def test_no_playbook_returns_false(self, tmp_path: Path) -> None:
         """Returns False when no .ace/playbook.jsonl exists."""
-        from memx.ext.team_bootstrap import _detect_git_fallback
+        from memorus.ext.team_bootstrap import _detect_git_fallback
 
         (tmp_path / ".git").mkdir()
 
-        with patch("memx.ext.team_bootstrap.Path.cwd", return_value=tmp_path):
+        with patch("memorus.ext.team_bootstrap.Path.cwd", return_value=tmp_path):
             assert _detect_git_fallback() is False
 
     def test_stops_at_git_root(self, tmp_path: Path) -> None:
         """Stops walking up when .git is found."""
-        from memx.ext.team_bootstrap import _detect_git_fallback
+        from memorus.ext.team_bootstrap import _detect_git_fallback
 
         sub = tmp_path / "project"
         sub.mkdir()
@@ -284,12 +284,12 @@ class TestDetectGitFallback:
         ace_dir.mkdir()
         (ace_dir / "playbook.jsonl").write_text("{}")
 
-        with patch("memx.ext.team_bootstrap.Path.cwd", return_value=sub):
+        with patch("memorus.ext.team_bootstrap.Path.cwd", return_value=sub):
             assert _detect_git_fallback() is False
 
     def test_playbook_in_parent_found(self, tmp_path: Path) -> None:
         """Playbook in parent directory (before .git root) is found."""
-        from memx.ext.team_bootstrap import _detect_git_fallback
+        from memorus.ext.team_bootstrap import _detect_git_fallback
 
         sub = tmp_path / "subdir"
         sub.mkdir()
@@ -299,7 +299,7 @@ class TestDetectGitFallback:
         (ace_dir / "playbook.jsonl").write_text("{}")
         (tmp_path / ".git").mkdir()
 
-        with patch("memx.ext.team_bootstrap.Path.cwd", return_value=sub):
+        with patch("memorus.ext.team_bootstrap.Path.cwd", return_value=sub):
             assert _detect_git_fallback() is True
 
 
@@ -312,7 +312,7 @@ class TestBuildMultiPoolRetriever:
 
     def test_no_pools_returns_none(self) -> None:
         """When neither git_fallback nor server_url, returns None."""
-        from memx.ext.team_bootstrap import _build_multi_pool_retriever
+        from memorus.ext.team_bootstrap import _build_multi_pool_retriever
 
         memory = _make_mock_memory()
         config = _make_team_config(enabled=True, server_url=None)
@@ -322,7 +322,7 @@ class TestBuildMultiPoolRetriever:
 
     def test_git_fallback_pool_created(self) -> None:
         """When git_fallback=True, creates a pool with GitFallbackStorage."""
-        from memx.ext.team_bootstrap import _build_multi_pool_retriever
+        from memorus.ext.team_bootstrap import _build_multi_pool_retriever
 
         memory = _make_mock_memory()
         config = _make_team_config(enabled=True)
@@ -338,7 +338,7 @@ class TestBuildMultiPoolRetriever:
 
     def test_federation_pool_created_when_available(self) -> None:
         """When server_url is set and TeamCacheStorage is available, creates retriever."""
-        from memx.ext.team_bootstrap import _build_multi_pool_retriever
+        from memorus.ext.team_bootstrap import _build_multi_pool_retriever
 
         memory = _make_mock_memory()
         config = _make_team_config(enabled=True, server_url="http://example.com")
@@ -349,8 +349,8 @@ class TestBuildMultiPoolRetriever:
 
     def test_both_pools_created(self) -> None:
         """When both git_fallback and server_url available, creates both pools."""
-        from memx.ext import team_bootstrap
-        from memx.ext.team_bootstrap import _build_multi_pool_retriever
+        from memorus.ext import team_bootstrap
+        from memorus.ext.team_bootstrap import _build_multi_pool_retriever
 
         memory = _make_mock_memory()
         config = _make_team_config(
@@ -362,7 +362,7 @@ class TestBuildMultiPoolRetriever:
         mock_module = MagicMock()
         mock_module.TeamCacheStorage = mock_cache
 
-        with patch.dict(sys.modules, {"memx.team.cache_storage": mock_module}):
+        with patch.dict(sys.modules, {"memorus.team.cache_storage": mock_module}):
             result = _build_multi_pool_retriever(
                 memory, config, git_fallback=True
             )
@@ -383,7 +383,7 @@ class TestMemoryIntegration:
 
     def test_try_team_bootstrap_returns_bool(self) -> None:
         """Memory._try_team_bootstrap returns a bool."""
-        from memx.core.memory import Memory
+        from memorus.core.memory import Memory
 
         mem = Memory.__new__(Memory)
         mem._config = MagicMock()
@@ -398,7 +398,7 @@ class TestMemoryIntegration:
         mem._daemon_fallback = None
 
         with patch(
-            "memx.ext.team_bootstrap.try_bootstrap_team",
+            "memorus.ext.team_bootstrap.try_bootstrap_team",
             return_value=False,
         ):
             result = mem._try_team_bootstrap()
@@ -408,7 +408,7 @@ class TestMemoryIntegration:
 
     def test_try_team_bootstrap_catches_import_error(self) -> None:
         """If ext module itself cannot be imported, returns False."""
-        from memx.core.memory import Memory
+        from memorus.core.memory import Memory
 
         mem = Memory.__new__(Memory)
 

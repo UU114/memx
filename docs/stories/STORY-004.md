@@ -1,4 +1,4 @@
-# STORY-004: 实现 MemXMemory Decorator 包装类
+# STORY-004: 实现 MemorusMemory Decorator 包装类
 
 **Epic:** EPIC-001 — Bullet 数据模型与配置基础
 **Priority:** Must Have
@@ -12,7 +12,7 @@
 
 ## User Story
 
-As a mem0 user migrating to MemX
+As a mem0 user migrating to Memorus
 I want to use the same API without code changes
 So that migration is zero-effort
 
@@ -21,12 +21,12 @@ So that migration is zero-effort
 ## Description
 
 ### Background
-MemXMemory 是 MemX 的核心公开 API，它包装 mem0 的 Memory 类。设计采用 Decorator 模式：`ace_enabled=False` 时所有调用直接代理到 mem0（零开销透传）；`ace_enabled=True` 时通过 IngestPipeline 和 RetrievalPipeline 处理。这确保了 100% mem0 API 兼容性——用户只需将 `from mem0 import Memory` 改为 `from memx import Memory`。
+MemorusMemory 是 Memorus 的核心公开 API，它包装 mem0 的 Memory 类。设计采用 Decorator 模式：`ace_enabled=False` 时所有调用直接代理到 mem0（零开销透传）；`ace_enabled=True` 时通过 IngestPipeline 和 RetrievalPipeline 处理。这确保了 100% mem0 API 兼容性——用户只需将 `from mem0 import Memory` 改为 `from memorus import Memory`。
 
 ### Scope
 
 **In scope:**
-- `memx.Memory` 类（包装 `mem0.Memory`）
+- `memorus.Memory` 类（包装 `mem0.Memory`）
 - 所有 mem0 公开方法的代理：add, search, get_all, get, update, delete, delete_all, history, reset
 - `ace_enabled=False` 模式的完整透传
 - `ace_enabled=True` 模式的管线调用接口（管线实现由 STORY-014, STORY-030 完成）
@@ -36,7 +36,7 @@ MemXMemory 是 MemX 的核心公开 API，它包装 mem0 的 Memory 类。设计
 **Out of scope:**
 - IngestPipeline 实现（STORY-014）
 - RetrievalPipeline 实现（STORY-030）
-- AsyncMemXMemory（STORY-005）
+- AsyncMemorusMemory（STORY-005）
 
 ### Architecture
 
@@ -44,7 +44,7 @@ MemXMemory 是 MemX 的核心公开 API，它包装 mem0 的 Memory 类。设计
 User Code
     │
     ▼
-memx.Memory(config)
+memorus.Memory(config)
     │
     ├── ace_enabled=False ──→ self._mem0.add/search/... (直接代理)
     │
@@ -58,7 +58,7 @@ memx.Memory(config)
 
 ## Acceptance Criteria
 
-- [ ] `memx.Memory` 可通过与 `mem0.Memory` 相同的方式构造
+- [ ] `memorus.Memory` 可通过与 `mem0.Memory` 相同的方式构造
 - [ ] `Memory(config_dict)` 兼容 mem0 config dict 格式
 - [ ] `ace_enabled=False`（默认）时所有方法直接代理到 mem0
 - [ ] 代理方法签名完全一致：add(messages, user_id=None, agent_id=None, run_id=None, metadata=None, filters=None, prompt=None)
@@ -75,7 +75,7 @@ memx.Memory(config)
 ## Technical Notes
 
 ### File Location
-`memx/memory.py`
+`memorus/memory.py`
 
 ### Implementation Sketch
 
@@ -83,19 +83,19 @@ memx.Memory(config)
 import logging
 from typing import Any, Optional
 from mem0 import Memory as Mem0Memory
-from memx.config import MemXConfig
+from memorus.config import MemorusConfig
 
 logger = logging.getLogger(__name__)
 
 class Memory:
-    """MemX Memory - drop-in replacement for mem0.Memory.
+    """Memorus Memory - drop-in replacement for mem0.Memory.
 
     ACE OFF: direct proxy to mem0.Memory (zero overhead)
     ACE ON: pipeline processing with graceful degradation
     """
 
     def __init__(self, config: Optional[dict] = None):
-        self._config = MemXConfig.from_dict(config or {})
+        self._config = MemorusConfig.from_dict(config or {})
         self._mem0 = Mem0Memory(config=self._config.to_mem0_config())
 
         # Pipeline initialization (lazy)
@@ -158,11 +158,11 @@ class Memory:
 ## Dependencies
 
 **Prerequisite Stories:**
-- STORY-003: MemXConfig
+- STORY-003: MemorusConfig
 - STORY-006: 项目骨架
 
 **Blocked Stories:**
-- STORY-005: AsyncMemXMemory（需要 Memory 类作为参考）
+- STORY-005: AsyncMemorusMemory（需要 Memory 类作为参考）
 - STORY-007: mem0 兼容测试（需要 Memory 类存在）
 - STORY-014: IngestPipeline（需要 Memory 类来集成）
 - STORY-030: RetrievalPipeline（需要 Memory 类来集成）
@@ -176,8 +176,8 @@ class Memory:
 
 ## Definition of Done
 
-- [ ] Code implemented in `memx/memory.py`
-- [ ] `from memx import Memory` 工作
+- [ ] Code implemented in `memorus/memory.py`
+- [ ] `from memorus import Memory` 工作
 - [ ] ace_enabled=False 下所有 mem0 方法正确代理
 - [ ] Unit tests in `tests/unit/test_memory.py`
 - [ ] All tests passing

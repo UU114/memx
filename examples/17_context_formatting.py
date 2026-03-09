@@ -10,7 +10,7 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from memx.integration.cli_hooks import CLIPreInferenceHook
+from memorus.integration.cli_hooks import CLIPreInferenceHook
 
 logger = logging.getLogger(__name__)
 
@@ -22,19 +22,19 @@ def main() -> None:
             "id": "mem-001",
             "memory": "Use git rebase -i for interactive commit cleanup",
             "score": 0.92,
-            "metadata": {"memx_knowledge_type": "method"},
+            "metadata": {"memorus_knowledge_type": "method"},
         },
         {
             "id": "mem-002",
             "memory": "Always run ruff check before committing Python code",
             "score": 0.78,
-            "metadata": {"memx_knowledge_type": "preference"},
+            "metadata": {"memorus_knowledge_type": "preference"},
         },
         {
             "id": "mem-003",
             "memory": "Docker COPY order affects build cache invalidation",
             "score": 0.65,
-            "metadata": {"memx_knowledge_type": "pitfall"},
+            "metadata": {"memorus_knowledge_type": "pitfall"},
         },
     ]
 
@@ -43,8 +43,8 @@ def main() -> None:
     xml_output = CLIPreInferenceHook._format(results, "xml")
     logger.debug("XML output:\n%s", xml_output)
 
-    assert "<memx-context>" in xml_output
-    assert "</memx-context>" in xml_output
+    assert "<memorus-context>" in xml_output
+    assert "</memorus-context>" in xml_output
     assert 'id="mem-001"' in xml_output
     assert 'score="0.92"' in xml_output
     assert 'type="method"' in xml_output
@@ -56,7 +56,7 @@ def main() -> None:
     md_output = CLIPreInferenceHook._format(results, "markdown")
     logger.debug("Markdown output:\n%s", md_output)
 
-    assert "## MemX Context" in md_output
+    assert "## Memorus Context" in md_output
     assert "**[0.92]**" in md_output
     assert "git rebase" in md_output
 
@@ -67,7 +67,7 @@ def main() -> None:
     plain_output = CLIPreInferenceHook._format(results, "plain")
     logger.debug("Plain output:\n%s", plain_output)
 
-    assert "[MemX]" in plain_output
+    assert "[Memorus]" in plain_output
     lines = plain_output.strip().split("\n")
     assert len(lines) == 3, f"Expected 3 lines, got {len(lines)}"
 
@@ -76,9 +76,9 @@ def main() -> None:
     # ── 4. Unknown format falls back to XML ──────────────────────────
     print("\n[4/4] Unknown format -> fallback to XML")
     fallback = CLIPreInferenceHook._format(results, "unknown_format")
-    logger.debug("Fallback format: starts_with_xml=%s", fallback.startswith("<memx-context>"))
+    logger.debug("Fallback format: starts_with_xml=%s", fallback.startswith("<memorus-context>"))
 
-    assert "<memx-context>" in fallback, "Unknown format should fall back to XML"
+    assert "<memorus-context>" in fallback, "Unknown format should fall back to XML"
     print(f"       format='unknown_format' -> produced XML ({len(fallback)} chars)")
     print(f"       Fallback behavior: OK")
 

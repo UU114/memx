@@ -12,7 +12,7 @@
 
 ## User Story
 
-As MemXMemory.add()
+As MemorusMemory.add()
 I want an ingest pipeline to process new memories
 So that Reflector and Curator are automatically invoked
 
@@ -21,7 +21,7 @@ So that Reflector and Curator are automatically invoked
 ## Description
 
 ### Background
-IngestPipeline 编排 add() 操作的完整处理流程：Raw Input → Reflector → Curator → mem0.add。它是连接 MemXMemory 和底层引擎的桥梁。管线设计遵循 NFR-006 的故障隔离原则——Reflector 异常时 fallback 到 raw add，Curator 异常时跳过去重直接 Insert。Sprint 1 中 Curator 尚未实现，IngestPipeline 先对接 Reflector，Curator 步骤预留接口。
+IngestPipeline 编排 add() 操作的完整处理流程：Raw Input → Reflector → Curator → mem0.add。它是连接 MemorusMemory 和底层引擎的桥梁。管线设计遵循 NFR-006 的故障隔离原则——Reflector 异常时 fallback 到 raw add，Curator 异常时跳过去重直接 Insert。Sprint 1 中 Curator 尚未实现，IngestPipeline 先对接 Reflector，Curator 步骤预留接口。
 
 ### Scope
 
@@ -31,7 +31,7 @@ IngestPipeline 编排 add() 操作的完整处理流程：Raw Input → Reflecto
 - Curator 接口预留（Sprint 2 实现）
 - IngestResult 返回值
 - Reflector 异常 fallback 到 raw add
-- 与 MemXMemory.add() 的集成
+- 与 MemorusMemory.add() 的集成
 
 **Out of scope:**
 - CuratorEngine 实现（STORY-017, Sprint 2）
@@ -67,12 +67,12 @@ IngestPipeline.process(messages, metadata)
 
 - [ ] `IngestPipeline.process(messages, metadata) -> IngestResult`
 - [ ] IngestResult 包含：bullets_added, bullets_merged, bullets_skipped, errors, raw_fallback
-- [ ] 正常路径：messages → Reflector → CandidateBullet → mem0.add (带 memx_ metadata)
+- [ ] 正常路径：messages → Reflector → CandidateBullet → mem0.add (带 memorus_ metadata)
 - [ ] Reflector 异常 → fallback 到 `mem0.add(messages, metadata)`（无 ACE 处理）
 - [ ] Curator 未初始化/异常 → 跳过去重，所有 CandidateBullet 直接 Insert
-- [ ] Bullet 元数据通过 BulletFactory.to_mem0_metadata() 转为 memx_ 前缀 dict
-- [ ] ace_enabled=True 时 MemXMemory.add() 调用此管线
-- [ ] IngestPipeline 可独立测试（不依赖 MemXMemory）
+- [ ] Bullet 元数据通过 BulletFactory.to_mem0_metadata() 转为 memorus_ 前缀 dict
+- [ ] ace_enabled=True 时 MemorusMemory.add() 调用此管线
+- [ ] IngestPipeline 可独立测试（不依赖 MemorusMemory）
 - [ ] 集成测试：正常流程 + Reflector 失败 fallback
 
 ---
@@ -80,7 +80,7 @@ IngestPipeline.process(messages, metadata)
 ## Technical Notes
 
 ### File Location
-`memx/pipeline/ingest.py`
+`memorus/pipeline/ingest.py`
 
 ### Implementation Sketch
 
@@ -88,9 +88,9 @@ IngestPipeline.process(messages, metadata)
 import logging
 from dataclasses import dataclass, field
 from typing import Optional
-from memx.engines.reflector.engine import ReflectorEngine
-from memx.utils.bullet_factory import BulletFactory
-from memx.types import InteractionEvent
+from memorus.engines.reflector.engine import ReflectorEngine
+from memorus.utils.bullet_factory import BulletFactory
+from memorus.types import InteractionEvent
 
 logger = logging.getLogger(__name__)
 
@@ -177,14 +177,14 @@ class IngestPipeline:
 - messages 为 None 或空 → 跳过处理，返回空 IngestResult
 - Reflector 返回空列表（无模式检测到）→ 仍做 raw add
 - mem0_add_fn 为 None（测试用途）→ 只运行 Reflector，不写入
-- metadata 中已有 memx_ 前缀字段 → 不覆盖用户手动设置的值
+- metadata 中已有 memorus_ 前缀字段 → 不覆盖用户手动设置的值
 
 ---
 
 ## Dependencies
 
 **Prerequisite Stories:**
-- STORY-004: MemXMemory（调用方）
+- STORY-004: MemorusMemory（调用方）
 - STORY-013: ReflectorEngine
 - STORY-002: BulletFactory（to_mem0_metadata）
 
@@ -197,12 +197,12 @@ class IngestPipeline:
 
 ## Definition of Done
 
-- [ ] Code in `memx/pipeline/ingest.py`
+- [ ] Code in `memorus/pipeline/ingest.py`
 - [ ] Unit tests + integration tests
 - [ ] 正常路径测试
 - [ ] Reflector 失败 fallback 测试
 - [ ] IngestResult 字段验证
-- [ ] MemXMemory.add(ace_enabled=True) 通过 IngestPipeline
+- [ ] MemorusMemory.add(ace_enabled=True) 通过 IngestPipeline
 - [ ] `ruff check` + `mypy` 通过
 - [ ] Code reviewed and approved
 

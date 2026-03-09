@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from memx.team.git_storage import GitFallbackStorage, TeamBulletRecord
+from memorus.team.git_storage import GitFallbackStorage, TeamBulletRecord
 
 
 # ---------------------------------------------------------------------------

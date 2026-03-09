@@ -1,4 +1,4 @@
-"""Shared mock utilities for MemX demos.
+"""Shared mock utilities for Memorus demos.
 
 Reuses the Memory.__new__ pattern from tests/unit/test_memory.py to create
 Memory instances without requiring a real mem0 backend or API keys.
@@ -11,8 +11,8 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 from unittest.mock import MagicMock
 
-from memx.config import MemXConfig
-from memx.memory import Memory
+from memorus.config import MemorusConfig
+from memorus.memory import Memory
 
 
 def create_mock_memory(
@@ -30,7 +30,7 @@ def create_mock_memory(
         config_dict.update(config_overrides)
 
     m = Memory.__new__(Memory)
-    m._config = MemXConfig.from_dict(config_dict)
+    m._config = MemorusConfig.from_dict(config_dict)
     m._mem0 = MagicMock()
     m._mem0_init_error = None
 
@@ -139,7 +139,7 @@ def populate_mock_memories(
         result = memory.add(
             samples[i % len(samples)],
             user_id="demo_user",
-            metadata={"memx_scope": scope},
+            metadata={"memorus_scope": scope},
         )
         mid = result["results"][0]["id"]
         ids.append(mid)

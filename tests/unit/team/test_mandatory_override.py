@@ -17,8 +17,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from memx.team.config import MandatoryOverride, _MAX_OVERRIDE_DAYS
-from memx.team.merger import MultiPoolRetriever, LayerBoostConfig, _MANDATORY_SCORE
+from memorus.team.config import MandatoryOverride, _MAX_OVERRIDE_DAYS
+from memorus.team.merger import MultiPoolRetriever, LayerBoostConfig, _MANDATORY_SCORE
 
 
 # ---------------------------------------------------------------------------

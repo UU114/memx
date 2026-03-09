@@ -1,4 +1,4 @@
-"""Tests for memx.team.types — TeamBullet model."""
+"""Tests for memorus.team.types — TeamBullet model."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from memx.team.types import TeamBullet
+from memorus.team.types import TeamBullet
 
 
 # ---------------------------------------------------------------------------

@@ -3,7 +3,7 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "memx"
+name = "memorus"
 version = "0.2.1"
 description = "Intelligent memory engine for AI agents — mem0 fork with ACE layer"
 readme = "README.md"
@@ -39,7 +39,7 @@ mcp = ["mcp>=1.0"]
 api = ["fastapi>=0.100", "uvicorn[standard]>=0.20"]
 agents = ["openai-agents>=0.1"]
 langchain = ["langchain-core>=0.2"]
-all = ["memx[onnx]", "memx[graph]", "memx[llm]", "memx[team]", "memx[mcp]", "memx[api]"]
+all = ["memorus[onnx]", "memorus[graph]", "memorus[llm]", "memorus[team]", "memorus[mcp]", "memorus[api]"]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
@@ -51,19 +51,19 @@ dev = [
 ]
 
 [project.scripts]
-memx = "memx.core.cli.main:cli"
-memx-mcp = "memx.ext.mcp_server:main"
-memx-api = "memx.ext.rest_api:main"
+memorus = "memorus.core.cli.main:cli"
+memorus-mcp = "memorus.ext.mcp_server:main"
+memorus-api = "memorus.ext.rest_api:main"
 
 [project.urls]
-Homepage = "https://github.com/user/memx"
-Documentation = "https://github.com/user/memx#readme"
-Repository = "https://github.com/user/memx"
-Issues = "https://github.com/user/memx/issues"
-Changelog = "https://github.com/user/memx/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/user/memorus"
+Documentation = "https://github.com/user/memorus#readme"
+Repository = "https://github.com/user/memorus"
+Issues = "https://github.com/user/memorus/issues"
+Changelog = "https://github.com/user/memorus/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
-include = ["memx*"]
+include = ["memorus*"]
 exclude = ["tests*", "docs*", "bmad*"]
 
 [tool.ruff]
@@ -76,7 +76,7 @@ select = ["E", "F", "W", "I", "N", "UP", "B", "A", "SIM"]
 [tool.mypy]
 python_version = "3.9"
 strict = true
-packages = ["memx"]
+packages = ["memorus"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

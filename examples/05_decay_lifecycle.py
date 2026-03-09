@@ -7,8 +7,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from datetime import datetime, timedelta, timezone
 
-from memx.config import DecayConfig
-from memx.engines.decay.engine import BulletDecayInfo, DecayEngine
+from memorus.config import DecayConfig
+from memorus.engines.decay.engine import BulletDecayInfo, DecayEngine
 
 
 def main() -> None:

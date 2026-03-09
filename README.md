@@ -1,12 +1,12 @@
-# MemX — Intelligent Memory for AI Agents
+# Memorus — Intelligent Memory for AI Agents
 
 > mem0 fork + ACE intelligent layer: auto-learn, auto-forget, auto-recall
 
-MemX extends [mem0](https://github.com/mem0ai/mem0) with the **Adaptive Context Engine (ACE)** — a pipeline that automatically distills, deduplicates, decays, and retrieves knowledge so your AI agent remembers what matters and forgets what doesn't.
+Memorus extends [mem0](https://github.com/mem0ai/mem0) with the **Adaptive Context Engine (ACE)** — a pipeline that automatically distills, deduplicates, decays, and retrieves knowledge so your AI agent remembers what matters and forgets what doesn't.
 
 ---
 
-## Why MemX: Local-First Intelligent Memory
+## Why Memorus: Local-First Intelligent Memory
 
 mem0 是优秀的记忆框架，但它的核心流程**强依赖远程 LLM API**：每次 `add()` 都需要调用 LLM 提取事实、判断去重、决策更新。这意味着：
 
@@ -15,9 +15,9 @@ mem0 是优秀的记忆框架，但它的核心流程**强依赖远程 LLM API**
 - 知识提取质量完全取决于远端 LLM，**无本地可控性**
 - 用户数据必须发送到云端 LLM，**隐私合规存在风险**
 
-MemX 的设计原则是 **Local-First**——所有核心能力（知识提炼、去重、衰退、检索）默认在本地完成，零外部依赖：
+Memorus 的设计原则是 **Local-First**——所有核心能力（知识提炼、去重、衰退、检索）默认在本地完成，零外部依赖：
 
-| 能力 | mem0 | MemX (rules 模式) | MemX (llm/hybrid 模式) |
+| 能力 | mem0 | Memorus (rules 模式) | Memorus (llm/hybrid 模式) |
 |---|---|---|---|
 | **知识提取** | 每次 add() 调 LLM (~2–5K tokens) | 规则引擎，**0 API 调用** | LLM 语义评估 + 结构化蒸馏 |
 | **去重** | LLM 判断 UPDATE/DELETE | 余弦相似度 ≥ 0.8 自动合并 | 同左 |
@@ -54,14 +54,14 @@ m = Memory.from_config({"vector_store": {"provider": "qdrant", ...}})
 m.add("fact", user_id="u1")
 results = m.search("query", user_id="u1")
 
-# AFTER (MemX, ACE off — identical behavior, zero overhead)
-from memx import Memory
+# AFTER (Memorus, ACE off — identical behavior, zero overhead)
+from memorus import Memory
 m = Memory(config={"vector_store": {"provider": "qdrant", ...}})
 m.add("fact", user_id="u1")
 results = m.search("query", user_id="u1")
 
-# AFTER (MemX, ACE on — full intelligent pipeline)
-from memx import Memory
+# AFTER (Memorus, ACE on — full intelligent pipeline)
+from memorus import Memory
 m = Memory(config={
     "ace_enabled": True,
     "vector_store": {"provider": "qdrant", ...},
@@ -110,23 +110,23 @@ results = m.search("pytest verbose", user_id="u1")
 ## Installation
 
 ```bash
-# Core — install memx (default: hybrid mode)
-pip install memx
+# Core — install memorus (default: hybrid mode)
+pip install memorus
 
 # With LLM reflector (llm/hybrid modes via litellm)
-pip install memx[llm]
+pip install memorus[llm]
 
 # With ONNX local embeddings (no API key needed)
-pip install memx[onnx]
+pip install memorus[onnx]
 
 # With Neo4j graph support
-pip install memx[graph]
+pip install memorus[graph]
 
 # Everything (ONNX + LLM + graph)
-pip install memx[all]
+pip install memorus[all]
 
 # Development
-pip install memx[dev]
+pip install memorus[dev]
 ```
 
 ### Core dependencies
@@ -146,14 +146,14 @@ click >= 8.0
 | `graph` | neo4j >= 5.0 | Graph-based memory relations |
 | `dev` | pytest, mypy, ruff, etc. | Testing and linting |
 
-> **推荐组合**：`pip install memx[onnx,llm]` — 嵌入完全本地 + Reflector 可选 LLM 增强
+> **推荐组合**：`pip install memorus[onnx,llm]` — 嵌入完全本地 + Reflector 可选 LLM 增强
 
 ---
 
 ## Quick Start
 
 ```python
-from memx import Memory
+from memorus import Memory
 
 # Initialize with ACE enabled
 m = Memory(config={"ace_enabled": True})
@@ -174,7 +174,7 @@ for r in results.get("results", []):
 ### ACE Off (Zero Overhead Proxy)
 
 ```python
-# Without ACE, MemX is a transparent proxy to mem0
+# Without ACE, Memorus is a transparent proxy to mem0
 m = Memory()
 m.add("Some fact", user_id="u1")
 ```
@@ -189,7 +189,7 @@ m.add("Some fact", user_id="u1")
 Memory(config: dict | None = None)
 ```
 
-`config` is a single dict that contains both mem0 keys and ACE keys. MemX automatically separates them — ACE keys (`ace_enabled`, `reflector`, `curator`, `decay`, `retrieval`, `privacy`, `integration`, `daemon`) are consumed by the ACE engine; everything else is forwarded to the mem0 backend.
+`config` is a single dict that contains both mem0 keys and ACE keys. Memorus automatically separates them — ACE keys (`ace_enabled`, `reflector`, `curator`, `decay`, `retrieval`, `privacy`, `integration`, `daemon`) are consumed by the ACE engine; everything else is forwarded to the mem0 backend.
 
 ### Methods (mem0-compatible)
 
@@ -207,7 +207,7 @@ Memory(config: dict | None = None)
 
 ### Methods (ACE-only)
 
-These methods are only available on MemX and have no mem0 equivalent:
+These methods are only available on Memorus and have no mem0 equivalent:
 
 | Method | Signature | Description |
 |---|---|---|
@@ -222,14 +222,14 @@ These methods are only available on MemX and have no mem0 equivalent:
 
 | Property | Type | Description |
 |---|---|---|
-| `config` | `MemXConfig` | Access the parsed configuration object. |
+| `config` | `MemorusConfig` | Access the parsed configuration object. |
 | `daemon_available` | `bool` | Whether the background daemon is running. |
 
 ---
 
 ## Configuration Reference
 
-MemX uses the same config dict as mem0, with additional ACE-specific keys. All ACE keys are optional — defaults are tuned for general use.
+Memorus uses the same config dict as mem0, with additional ACE-specific keys. All ACE keys are optional — defaults are tuned for general use.
 
 ```python
 config = {
@@ -405,7 +405,7 @@ Special rules:
 Run embeddings entirely offline — no API keys, no network calls.
 
 ```bash
-pip install memx[onnx]
+pip install memorus[onnx]
 ```
 
 ```python
@@ -425,7 +425,7 @@ m = Memory(config={
 | Model | all-MiniLM-L6-v2 |
 | Dimensions | 384 |
 | Max tokens | 256 |
-| Cache dir | `~/.memx/models/` |
+| Cache dir | `~/.memorus/models/` |
 | Auto-download | Yes (HuggingFace Hub, first run only) |
 
 After the first download, the model is cached locally and works fully offline. If ONNX dependencies are missing, the search pipeline degrades gracefully (vector layer skipped, keyword layers still work).
@@ -510,40 +510,40 @@ m = Memory(config={
 
 ## CLI
 
-MemX ships with a Click-based CLI. After installation, the `memx` command is available:
+Memorus ships with a Click-based CLI. After installation, the `memorus` command is available:
 
 ```bash
 # Show knowledge base statistics
-memx status
+memorus status
 
 # Search memories
-memx search "pytest" --limit 10 --scope "project:myapp"
+memorus search "pytest" --limit 10 --scope "project:myapp"
 
 # Teach new knowledge (goes through Reflector)
-memx learn "Always use -v flag"
+memorus learn "Always use -v flag"
 
 # Teach raw (skip Reflector, store as-is)
-memx learn "raw fact" --raw
+memorus learn "raw fact" --raw
 
 # List all memories with filters
-memx list --type method --scope "project:myapp" --limit 20
+memorus list --type method --scope "project:myapp" --limit 20
 
 # Export knowledge base
-memx export --format json
-memx export --format markdown -o knowledge.md
+memorus export --format json
+memorus export --format markdown -o knowledge.md
 
 # Import knowledge base (with Curator dedup)
-memx import --file backup.json
+memorus import --file backup.json
 
 # Detect contradictory memories
-memx conflicts
+memorus conflicts
 
 # Delete a specific memory
-memx forget <memory-id>
-memx forget <memory-id> --yes   # skip confirmation
+memorus forget <memory-id>
+memorus forget <memory-id> --yes   # skip confirmation
 
 # Run decay sweep
-memx sweep
+memorus sweep
 ```
 
 All commands support `--json` for machine-readable output and `--user-id` for multi-user filtering.
@@ -552,7 +552,7 @@ All commands support `--json` for machine-readable output and `--user-id` for mu
 
 ## Knowledge Types & Sections
 
-MemX classifies each knowledge bullet with a **type** and **section** for structured organization.
+Memorus classifies each knowledge bullet with a **type** and **section** for structured organization.
 
 ### Knowledge Types
 
@@ -581,7 +581,7 @@ The Reflector filters low-quality content. Check `reflector.min_score` (default 
 Embedding provider unavailable (API down or ONNX not installed). Keyword layers (L1–L3) still work. Install ONNX for offline resilience:
 
 ```bash
-pip install memx[onnx]
+pip install memorus[onnx]
 ```
 
 ### Memories disappearing over time
@@ -599,7 +599,7 @@ The Reflector failed to extract structured bullets and fell back to raw mem0 `ad
 ### LLM/hybrid mode falls back to rules
 
 If you set `reflector.mode` to `"llm"` or `"hybrid"` but bullets lack `distilled_rule`, the LLM call may have failed and auto-degraded to rules mode. Check:
-1. `litellm` is installed (`pip install memx[llm]`)
+1. `litellm` is installed (`pip install memorus[llm]`)
 2. API key is set (env var or `reflector.llm_api_key`)
 3. Model identifier is valid for your provider (e.g. `"openai/gpt-4o-mini"`, `"deepseek/deepseek-chat"`)
 

@@ -1,4 +1,4 @@
-# Product Brief: MemX
+# Product Brief: Memorus
 
 **Date:** 2026-02-27
 **Author:** TPY
@@ -10,7 +10,7 @@
 
 ## Executive Summary
 
-MemX 是基于 mem0 开源项目的深度改造 Fork，通过叠加 ACE（Adaptive Context Engine）智能层，将 mem0 从"被动存取型"记忆系统进化为"主动蒸馏型"自适应记忆引擎。它面向所有"用户与 AI 多轮交互"场景的产品开发者和企业客户，提供自动知识蒸馏、艾宾浩斯衰退遗忘、语义去重、混合三层检索等能力，同时完整保留 mem0 丰富的基础设施生态（23 个向量库、13+ LLM/Embedding Provider）。目标是成为 AI 产品的标准记忆基础设施，实现"越用越懂你"的智能体验。
+Memorus 是基于 mem0 开源项目的深度改造 Fork，通过叠加 ACE（Adaptive Context Engine）智能层，将 mem0 从"被动存取型"记忆系统进化为"主动蒸馏型"自适应记忆引擎。它面向所有"用户与 AI 多轮交互"场景的产品开发者和企业客户，提供自动知识蒸馏、艾宾浩斯衰退遗忘、语义去重、混合三层检索等能力，同时完整保留 mem0 丰富的基础设施生态（23 个向量库、13+ LLM/Embedding Provider）。目标是成为 AI 产品的标准记忆基础设施，实现"越用越懂你"的智能体验。
 
 ---
 
@@ -69,7 +69,7 @@ MemX 是基于 mem0 开源项目的深度改造 Fork，通过叠加 ACE（Adapti
 
 ### Secondary Users
 
-- **内部产品线**：团队自身的 AI 产品（ACEST Desktop、OpenClaw 等）作为 MemX 的首要集成用户
+- **内部产品线**：团队自身的 AI 产品（ACEST Desktop、OpenClaw 等）作为 Memorus 的首要集成用户
 - **开源贡献者**：对 AI 记忆技术感兴趣的开发者社区
 - **研究人员**：研究 AI 长期记忆、知识管理的学术/工业界研究者
 
@@ -85,7 +85,7 @@ MemX 是基于 mem0 开源项目的深度改造 Fork，通过叠加 ACE（Adapti
 
 ### Proposed Solution
 
-在 mem0 开源项目之上叠加 ACE 智能层，形成 **MemX** 产品。核心策略是"ACE 的智能层 + mem0 的基础设施层"：
+在 mem0 开源项目之上叠加 ACE 智能层，形成 **Memorus** 产品。核心策略是"ACE 的智能层 + mem0 的基础设施层"：
 
 - **保留** mem0 全部基础设施（23 个 VectorStore、13+ LLM/Embedding Provider、图存储、Reranker、异步支持、Cloud Client、OpenMemory UI、TypeScript SDK）
 - **新增** ACE 四大引擎：Reflector（知识蒸馏）、Curator（语义去重）、Generator（混合检索）、Decay（衰退遗忘）
@@ -107,7 +107,7 @@ MemX 是基于 mem0 开源项目的深度改造 Fork，通过叠加 ACE（Adapti
 
 ### Value Proposition
 
-| 维度 | mem0 原版 | **MemX** |
+| 维度 | mem0 原版 | **Memorus** |
 |------|-----------|----------|
 | 知识来源 | API 式手动存取 | **自动蒸馏** |
 | 时效维护 | 永久存储 | **指数衰退 + 召回强化** |
@@ -124,10 +124,10 @@ MemX 是基于 mem0 开源项目的深度改造 Fork，通过叠加 ACE（Adapti
 ### Goals
 
 - **开源影响力**：发布后 6 个月内获得 1000+ GitHub Star，建立 AI 记忆引擎赛道的技术品牌
-- **PyPI 发布**：作为可安装的 Python 包发布到 PyPI（`pip install memx`），降低使用门槛
+- **PyPI 发布**：作为可安装的 Python 包发布到 PyPI（`pip install memorus`），降低使用门槛
 - **内部产品赋能**：为团队自身的 AI 产品线（ACEST Desktop、OpenClaw 等）提供核心记忆引擎
 - **企业客户获取**：发布后 12 个月内获得 3-5 个企业客户试用/付费
-- **商业化路径**：建立 MemX Enterprise 付费模式（私有化部署 + 高级功能 + 技术支持）
+- **商业化路径**：建立 Memorus Enterprise 付费模式（私有化部署 + 高级功能 + 技术支持）
 
 ### Success Metrics
 
@@ -148,7 +148,7 @@ MemX 是基于 mem0 开源项目的深度改造 Fork，通过叠加 ACE（Adapti
 
 - **短期**：为内部 AI 产品线提供差异化记忆能力，形成技术壁垒
 - **中期**：通过开源建立行业影响力，吸引开发者生态
-- **长期**：以 MemX Enterprise 实现商业变现，成为 AI 记忆基础设施的标准方案
+- **长期**：以 Memorus Enterprise 实现商业变现，成为 AI 记忆基础设施的标准方案
 
 ---
 
@@ -162,7 +162,7 @@ MemX 是基于 mem0 开源项目的深度改造 Fork，通过叠加 ACE（Adapti
 - Decay 衰退引擎（艾宾浩斯公式 + 召回强化 + 永久保留）
 - 混合检索引擎（关键词 + 语义 + 衰退加权）
 - Curator 语义去重（cosine similarity 自动 Merge）
-- MemX 配置系统扩展（RetrievalConfig / ReflectorConfig / DecayConfig / PrivacyConfig）
+- Memorus 配置系统扩展（RetrievalConfig / ReflectorConfig / DecayConfig / PrivacyConfig）
 
 **Phase 2 — 集成层**
 - Integration Points 抽象接口（Pre-Inference / Post-Action / Session-End）
@@ -190,7 +190,7 @@ MemX 是基于 mem0 开源项目的深度改造 Fork，通过叠加 ACE（Adapti
 
 - 团队知识共享模式（多用户记忆合并与权限控制）
 - 多语言 Embedding 模型支持（尤其中文优化）
-- MemX Cloud 托管服务（企业 SaaS 模式）
+- Memorus Cloud 托管服务（企业 SaaS 模式）
 - 与主流 Agent 框架（LangChain / CrewAI / AutoGen）的深度集成包
 - VS Code / Cursor 插件形态发布
 - 记忆可视化分析仪表板
@@ -231,9 +231,9 @@ MemX 是基于 mem0 开源项目的深度改造 Fork，通过叠加 ACE（Adapti
 
 - **MVP 可用性**：在团队自身的 AI 产品中实际跑通 Reflector + Decay + 混合检索闭环，3-5 个会话后用户能感知到历史经验被自动召回
 - **工程质量**：核心模块测试覆盖率 > 80%，检索延迟 < 50ms，无 P0 级 Bug
-- **PyPI 发布成功**：`pip install memx` 可正常安装并运行，文档完整
+- **PyPI 发布成功**：`pip install memorus` 可正常安装并运行，文档完整
 - **社区认可**：GitHub 发布后首月获得 100+ Star，有外部贡献者提交 Issue/PR
-- **API 兼容验证**：mem0 现有用户可以无缝迁移到 MemX，零代码修改即可运行
+- **API 兼容验证**：mem0 现有用户可以无缝迁移到 Memorus，零代码修改即可运行
 
 ---
 
@@ -247,7 +247,7 @@ MemX 是基于 mem0 开源项目的深度改造 Fork，通过叠加 ACE（Adapti
 
 ### Key Milestones
 
-- **M1 — 基础框架搭建**（2 周）：Fork mem0、建立 MemX 项目结构、Bullet 数据模型定义、配置系统扩展
+- **M1 — 基础框架搭建**（2 周）：Fork mem0、建立 Memorus 项目结构、Bullet 数据模型定义、配置系统扩展
 - **M2 — Reflector + Privacy**（3 周）：规则式蒸馏引擎、隐私脱敏模块、4-Stage 流水线
 - **M3 — Decay + Curator**（2 周）：衰退引擎、语义去重、生命周期管理
 - **M4 — Generator 改造**（3 周）：混合三层检索、衰退加权评分、Token 预算控制、降级模式

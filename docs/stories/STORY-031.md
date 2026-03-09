@@ -46,7 +46,7 @@ Sprint 2 已完成 Generator 全部组件（ExactMatcher, FuzzyMatcher, Metadata
 - [ ] ScoreMerger 测试覆盖：权重归一化、degraded 模式自动调权、recency boost 计算
 - [ ] GeneratorEngine 端到端：full 模式 + degraded 模式 + 单 Matcher 故障隔离
 - [ ] RetrievalPipeline 集成测试：Generator→Trimmer→Reinforcer 完整流程 + fallback 路径
-- [ ] 覆盖率 > 85%（`memx/engines/generator/` + `memx/pipeline/retrieval.py` + `memx/utils/token_counter.py`）
+- [ ] 覆盖率 > 85%（`memorus/engines/generator/` + `memorus/pipeline/retrieval.py` + `memorus/utils/token_counter.py`）
 - [ ] 所有测试 < 5s 完成（无真实网络调用）
 
 ---
@@ -70,10 +70,10 @@ Sprint 2 已完成 Generator 全部组件（ExactMatcher, FuzzyMatcher, Metadata
 - 使用 `pytest-cov` 生成覆盖率报告
 
 ### Dependencies on Existing Code
-- `memx/engines/generator/` — 全部 Matcher、ScoreMerger、GeneratorEngine
-- `memx/pipeline/retrieval.py` — RetrievalPipeline
-- `memx/utils/token_counter.py` — TokenBudgetTrimmer
-- `memx/utils/text_processing.py` — tokenize/stem 工具函数
+- `memorus/engines/generator/` — 全部 Matcher、ScoreMerger、GeneratorEngine
+- `memorus/pipeline/retrieval.py` — RetrievalPipeline
+- `memorus/utils/token_counter.py` — TokenBudgetTrimmer
+- `memorus/utils/text_processing.py` — tokenize/stem 工具函数
 
 ---
 

@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from memx.team.merger import (
+from memorus.team.merger import (
     LayerBoostConfig,
     MultiPoolRetriever,
     ScoredResult,

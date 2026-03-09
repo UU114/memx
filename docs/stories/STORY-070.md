@@ -63,9 +63,9 @@ So that the entire team gets the updated version
 ## Technical Notes
 
 ### Components
-- **File:** `memx/team/nominator.py` — 添加 Supersede 检测和提交逻辑
-- **File:** `memx/team/merger.py` — Supersede 版本冲突检测
-- **File:** `memx/team/cache_storage.py` — 更新后通知逻辑
+- **File:** `memorus/team/nominator.py` — 添加 Supersede 检测和提交逻辑
+- **File:** `memorus/team/merger.py` — Supersede 版本冲突检测
+- **File:** `memorus/team/cache_storage.py` — 更新后通知逻辑
 
 ### Supersede Detection Logic
 ```python

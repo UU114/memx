@@ -57,7 +57,7 @@ So that my cache doesn't contain stale entries
 ## Technical Notes
 
 ### Components
-- **File:** `memx/team/cache_storage.py` — tombstone 处理扩展
+- **File:** `memorus/team/cache_storage.py` — tombstone 处理扩展
 
 ### Tombstone Flow
 ```python

@@ -7,11 +7,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from unittest.mock import MagicMock
 
-from memx.config import CuratorConfig, ReflectorConfig
-from memx.engines.curator.engine import CuratorEngine
-from memx.engines.reflector.engine import ReflectorEngine
-from memx.pipeline.ingest import IngestPipeline
-from memx.privacy.sanitizer import PrivacySanitizer
+from memorus.config import CuratorConfig, ReflectorConfig
+from memorus.engines.curator.engine import CuratorEngine
+from memorus.engines.reflector.engine import ReflectorEngine
+from memorus.pipeline.ingest import IngestPipeline
+from memorus.privacy.sanitizer import PrivacySanitizer
 
 
 def main() -> None:

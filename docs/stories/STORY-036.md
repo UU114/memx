@@ -21,12 +21,12 @@ So that my data never leaves my machine
 ## Description
 
 ### Background
-MemX 的 L4 VectorSearcher 依赖 Embedding 向量进行语义搜索。默认情况下需要调用 OpenAI 等在线 API，这与 MemX 的"数据本地化"原则相悖。ONNXEmbedder 使用 ONNX Runtime 在本地运行 all-MiniLM-L6-v2 模型，实现零网络依赖的 Embedding 能力。需注册到 mem0 的 EmbedderFactory，使用 `provider="onnx"` 即可启用。
+Memorus 的 L4 VectorSearcher 依赖 Embedding 向量进行语义搜索。默认情况下需要调用 OpenAI 等在线 API，这与 Memorus 的"数据本地化"原则相悖。ONNXEmbedder 使用 ONNX Runtime 在本地运行 all-MiniLM-L6-v2 模型，实现零网络依赖的 Embedding 能力。需注册到 mem0 的 EmbedderFactory，使用 `provider="onnx"` 即可启用。
 
 ### Scope
 **In scope:**
 - ONNXEmbedder 实现 mem0 `EmbeddingBase` 接口
-- 模型文件自动下载到 `~/.memx/models/`
+- 模型文件自动下载到 `~/.memorus/models/`
 - Tokenization (使用 tokenizers 库)
 - ONNX Runtime inference
 - 注册到 mem0 EmbedderFactory
@@ -43,21 +43,21 @@ MemX 的 L4 VectorSearcher 依赖 Embedding 向量进行语义搜索。默认情
 
 - [ ] `ONNXEmbedder` 实现 `embed(text) -> list[float]` 接口
 - [ ] 默认模型 `all-MiniLM-L6-v2`，输出 384 维向量
-- [ ] 模型文件自动下载到 `~/.memx/models/`（首次使用时）
+- [ ] 模型文件自动下载到 `~/.memorus/models/`（首次使用时）
 - [ ] 模型已下载后零网络请求（离线可用）
 - [ ] `embed_batch(texts) -> list[list[float]]` 批量 Embedding
 - [ ] 单条 embed < 10ms（CPU，文本 < 200 字符）
 - [ ] 注册到 mem0 EmbedderFactory，`provider="onnx"` 可用
 - [ ] 模型文件损坏时自动重新下载
-- [ ] onnxruntime 未安装时 `import memx` 不报错，仅在使用 ONNX 时报 ImportError
+- [ ] onnxruntime 未安装时 `import memorus` 不报错，仅在使用 ONNX 时报 ImportError
 
 ---
 
 ## Technical Notes
 
 ### Components
-- `memx/embeddings/__init__.py` — 包入口
-- `memx/embeddings/onnx.py` — ONNXEmbedder
+- `memorus/embeddings/__init__.py` — 包入口
+- `memorus/embeddings/onnx.py` — ONNXEmbedder
 
 ### API Design
 
@@ -67,7 +67,7 @@ from mem0.embeddings.base import EmbeddingBase
 class ONNXEmbedderConfig(BaseModel):
     model: str = "all-MiniLM-L6-v2"
     dimensions: int = 384
-    model_dir: str = "~/.memx/models/"
+    model_dir: str = "~/.memorus/models/"
     auto_download: bool = True
     max_length: int = 256  # token limit
 
@@ -101,7 +101,7 @@ class ONNXEmbedder(EmbeddingBase):
 ```
 
 ### Model Download Strategy
-1. 检查 `~/.memx/models/all-MiniLM-L6-v2/model.onnx` 是否存在
+1. 检查 `~/.memorus/models/all-MiniLM-L6-v2/model.onnx` 是否存在
 2. 不存在 → 从 Hugging Face Hub 下载（`huggingface_hub.hf_hub_download`）
 3. 下载失败 → 抛 `RuntimeError("Failed to download ONNX model")`
 4. 文件校验：加载模型失败 → 删除并重新下载
@@ -113,7 +113,7 @@ class ONNXEmbedder(EmbeddingBase):
 - `numpy` — 向量操作
 
 ### Dependencies on Existing Code
-- `memx/config.py:MemXConfig` — 可能需要添加 ONNXEmbedderConfig
+- `memorus/config.py:MemorusConfig` — 可能需要添加 ONNXEmbedderConfig
 - mem0 `EmbeddingBase` — embed() 接口
 
 ### Edge Cases
@@ -128,16 +128,16 @@ class ONNXEmbedder(EmbeddingBase):
 ## Dependencies
 
 **Prerequisite Stories:**
-- STORY-003: MemXConfig ✓（已完成）
+- STORY-003: MemorusConfig ✓（已完成）
 
 **Blocked Stories:**
-- STORY-037: MemXDaemon 服务端（预加载 ONNX 模型）
+- STORY-037: MemorusDaemon 服务端（预加载 ONNX 模型）
 
 ---
 
 ## Definition of Done
 
-- [ ] `memx/embeddings/onnx.py` 实现 ONNXEmbedder
+- [ ] `memorus/embeddings/onnx.py` 实现 ONNXEmbedder
 - [ ] 注册到 mem0 EmbedderFactory
 - [ ] 单元测试（mock ONNX session）
 - [ ] 集成测试（真实模型，可选，需网络下载）

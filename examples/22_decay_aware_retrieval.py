@@ -20,12 +20,12 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from datetime import datetime, timedelta, timezone
 
-from memx.config import DecayConfig, RetrievalConfig
-from memx.engines.decay.engine import DecayEngine
-from memx.engines.generator.engine import BulletForSearch, GeneratorEngine
-from memx.engines.generator.metadata_matcher import MetadataInfo
-from memx.pipeline.retrieval import RecallReinforcer, RetrievalPipeline, SearchResult
-from memx.utils.token_counter import TokenBudgetTrimmer
+from memorus.config import DecayConfig, RetrievalConfig
+from memorus.engines.decay.engine import DecayEngine
+from memorus.engines.generator.engine import BulletForSearch, GeneratorEngine
+from memorus.engines.generator.metadata_matcher import MetadataInfo
+from memorus.pipeline.retrieval import RecallReinforcer, RetrievalPipeline, SearchResult
+from memorus.utils.token_counter import TokenBudgetTrimmer
 
 logger = logging.getLogger(__name__)
 

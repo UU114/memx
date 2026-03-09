@@ -1,4 +1,4 @@
-"""Tests for memx.ext.rest_api."""
+"""Tests for memorus.ext.rest_api."""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ def mock_memory():
 @pytest.fixture()
 def app_no_auth(mock_memory):
     """Create an app with auth disabled, injecting mock memory via dependency override."""
-    import memx.ext.rest_api as mod
+    import memorus.ext.rest_api as mod
 
     mod._NO_AUTH = True
     app = mod.create_app()
@@ -83,7 +83,7 @@ class TestAuth:
 
     def _make_authed_client(self, mock_memory):
         """Create a TestClient with auth enabled and mock memory injected."""
-        import memx.ext.rest_api as mod
+        import memorus.ext.rest_api as mod
 
         mod._NO_AUTH = False
         app = mod.create_app()
@@ -97,21 +97,21 @@ class TestAuth:
 
     def test_valid_api_key_accepted(self, mock_memory):
         """Valid API key passes authentication."""
-        with patch.dict(os.environ, {"MEMX_API_KEY": "secret123"}):
+        with patch.dict(os.environ, {"MEMORUS_API_KEY": "secret123"}):
             tc = self._make_authed_client(mock_memory)
             resp = tc.get("/status", headers={"X-API-Key": "secret123"})
         assert resp.status_code == 200
 
     def test_invalid_api_key_rejected(self, mock_memory):
         """Invalid API key returns 401."""
-        with patch.dict(os.environ, {"MEMX_API_KEY": "secret123"}):
+        with patch.dict(os.environ, {"MEMORUS_API_KEY": "secret123"}):
             tc = self._make_authed_client(mock_memory)
             resp = tc.get("/status", headers={"X-API-Key": "wrong"})
         assert resp.status_code == 401
 
     def test_missing_api_key_rejected(self, mock_memory):
         """Missing API key returns 401 when auth is enabled."""
-        with patch.dict(os.environ, {"MEMX_API_KEY": "secret123"}):
+        with patch.dict(os.environ, {"MEMORUS_API_KEY": "secret123"}):
             tc = self._make_authed_client(mock_memory)
             resp = tc.get("/status")
         assert resp.status_code == 401
@@ -121,8 +121,8 @@ class TestImportError:
     """Test behavior when FastAPI is not installed."""
 
     def test_create_app_raises_without_fastapi(self):
-        with patch("memx.ext.rest_api.FastAPI", None):
-            from memx.ext.rest_api import create_app
+        with patch("memorus.ext.rest_api.FastAPI", None):
+            from memorus.ext.rest_api import create_app
 
             with pytest.raises(ImportError, match="fastapi"):
                 create_app()

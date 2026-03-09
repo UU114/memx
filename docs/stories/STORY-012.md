@@ -54,14 +54,14 @@ BulletDistiller 是 Reflector 的最终阶段（Stage 4）。它将 KnowledgeSco
 ## Technical Notes
 
 ### File Location
-`memx/engines/reflector/distiller.py`
+`memorus/engines/reflector/distiller.py`
 
 ### Implementation Sketch
 
 ```python
 import re
-from memx.types import CandidateBullet, SourceType
-from memx.config import ReflectorConfig
+from memorus.types import CandidateBullet, SourceType
+from memorus.config import ReflectorConfig
 
 class BulletDistiller:
     # Common tool/command names to detect
@@ -154,7 +154,7 @@ class BulletDistiller:
 
 ## Definition of Done
 
-- [ ] Code in `memx/engines/reflector/distiller.py`
+- [ ] Code in `memorus/engines/reflector/distiller.py`
 - [ ] Unit tests in `tests/unit/test_reflector.py` (distiller section)
 - [ ] 长度截断测试（超长、刚好、极短）
 - [ ] 工具提取测试

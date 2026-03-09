@@ -1,4 +1,4 @@
-"""Unit tests for memx.team.redactor — three-layer sanitization engine."""
+"""Unit tests for memorus.team.redactor — three-layer sanitization engine."""
 
 from __future__ import annotations
 
@@ -6,9 +6,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from memx.core.privacy.sanitizer import FilteredItem, PrivacySanitizer
-from memx.team.config import RedactorConfig
-from memx.team.redactor import (
+from memorus.core.privacy.sanitizer import FilteredItem, PrivacySanitizer
+from memorus.team.config import RedactorConfig
+from memorus.team.redactor import (
     LLMGeneralizer,
     RedactedResult,
     Redactor,
@@ -181,7 +181,7 @@ class TestTeamPatterns:
     def test_project_path_direct(self) -> None:
         """Test project_path pattern directly with a PrivacySanitizer that has no core patterns."""
         import re
-        from memx.team.redactor import TEAM_PATTERNS
+        from memorus.team.redactor import TEAM_PATTERNS
 
         project_patterns = [(n, r, rep) for n, r, rep in TEAM_PATTERNS if "project_path" in n]
         assert len(project_patterns) > 0

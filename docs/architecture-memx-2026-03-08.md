@@ -1,4 +1,4 @@
-# System Architecture: MemX
+# System Architecture: Memorus
 
 **Date:** 2026-03-08
 **Architect:** TPY
@@ -11,11 +11,11 @@
 
 ## Document Overview
 
-This document defines the system architecture for MemX. It provides the technical blueprint for implementation, addressing all 37 functional and 13 non-functional requirements from the PRD v2.0.
+This document defines the system architecture for Memorus. It provides the technical blueprint for implementation, addressing all 37 functional and 13 non-functional requirements from the PRD v2.0.
 
 **Related Documents:**
-- Product Requirements Document: `docs/prd-memx-2026-03-08.md`
-- Product Brief: `docs/product-brief-memx-2026-02-27.md`
+- Product Requirements Document: `docs/prd-memorus-2026-03-08.md`
+- Product Brief: `docs/product-brief-memorus-2026-02-27.md`
 - ACE Analysis Report: `doc/ace-mem0-analysis-report.md`
 - ACE Team Memory Architecture: `ace-team-memory-architecture.md` **(v2.0 新增)**
 
@@ -32,7 +32,7 @@ This document defines the system architecture for MemX. It provides the technica
 
 ## Executive Summary
 
-MemX 在 mem0 之上叠加 ACE 智能层，形成"Layered Engine on Fork"架构。核心设计原则：新增模块完全独立于 mem0 现有代码，通过 Pipeline + Factory 模式插入；所有 ACE 组件有独立故障边界，任何故障不影响宿主。
+Memorus 在 mem0 之上叠加 ACE 智能层，形成"Layered Engine on Fork"架构。核心设计原则：新增模块完全独立于 mem0 现有代码，通过 Pipeline + Factory 模式插入；所有 ACE 组件有独立故障边界，任何故障不影响宿主。
 
 **v2.0 新增**：Team Memory 扩展层，采用**充分解耦架构**。Team Layer 作为 Core 的纯可选扩展层，通过 `StorageBackend` Protocol 和组合模式注入，Core 代码零修改。依赖方向严格单向：`Core ← Team Layer ← Sync Server`。
 
@@ -72,13 +72,13 @@ These requirements heavily influence architectural decisions:
 
 ### High-Level Architecture
 
-MemX 采用 **Layered Engine Architecture + Decoupled Team Extension**（分层引擎架构 + 解耦团队扩展）。
+Memorus 采用 **Layered Engine Architecture + Decoupled Team Extension**（分层引擎架构 + 解耦团队扩展）。
 
 核心设计决策：
-- **新增代码独立目录**：`memx/core/` 包含所有现有引擎代码，`memx/team/` 作为可选扩展
+- **新增代码独立目录**：`memorus/core/` 包含所有现有引擎代码，`memorus/team/` 作为可选扩展
 - **Pipeline 模式**：add/search 操作通过可组合的处理管线，每个 Stage 可独立启停
 - **Factory + Strategy 模式**：引擎组件通过 Factory 创建，可按配置切换实现
-- **Decorator 模式**：MemX 的 `Memory` 类包装 mem0 的 `Memory` 类，ACE 关闭时直接代理
+- **Decorator 模式**：Memorus 的 `Memory` 类包装 mem0 的 `Memory` 类，ACE 关闭时直接代理
 - **组合模式（v2.0）**：MultiPoolRetriever 组合多个 StorageBackend，Generator 代码零改动
 
 ### Architecture Diagram
@@ -202,7 +202,7 @@ MemX 采用 **Layered Engine Architecture + Decoupled Team Extension**（分层�
 ┌─────────────────────────▼───────────────────────────────────┐
 │                 CONFIGURATION LAYER                          │
 │                                                             │
-│  MemXConfig(MemoryConfig)                                   │
+│  MemorusConfig(MemoryConfig)                                   │
 │  ├── ace_enabled: bool = False                              │
 │  ├── retrieval: RetrievalConfig                             │
 │  ├── reflector: ReflectorConfig                             │
@@ -213,7 +213,7 @@ MemX 采用 **Layered Engine Architecture + Decoupled Team Extension**（分层�
 │  ├── daemon: DaemonConfig                                   │
 │  └── [继承 mem0 全部配置字段]                                  │
 │                                                             │
-│  TeamConfig (独立于 MemXConfig) ◄── v2.0                     │
+│  TeamConfig (独立于 MemorusConfig) ◄── v2.0                     │
 │  ├── enabled: bool = False                                  │
 │  ├── server_url: str = ""                                   │
 │  ├── subscribed_tags: list[str] = []                        │
@@ -314,13 +314,13 @@ MemX 采用 **Layered Engine Architecture + Decoupled Team Extension**（分层�
 
 以下 12 个组件的接口、职责、实现方案与 v1.0 完全一致，此处仅列出摘要。详细接口定义参见 v1.0 架构文档。
 
-#### Component 1: MemXMemory (公开 API 层)
+#### Component 1: MemorusMemory (公开 API 层)
 
-**Purpose:** MemX 的公开入口，包装 mem0 的 Memory 类
+**Purpose:** Memorus 的公开入口，包装 mem0 的 Memory 类
 
 **FRs Addressed:** FR-013 (API 兼容), FR-012 (配置系统)
 
-**v2.0 变更:** 无接口变更。Team 功能通过 `ext/team_bootstrap.py` 在初始化时注入，MemXMemory 本身不感知 Team Layer。
+**v2.0 变更:** 无接口变更。Team 功能通过 `ext/team_bootstrap.py` 在初始化时注入，MemorusMemory 本身不感知 Team Layer。
 
 ---
 
@@ -344,7 +344,7 @@ MemX 采用 **Layered Engine Architecture + Decoupled Team Extension**（分层�
 
 ```python
 # ext/team_bootstrap.py (v2.0 新增)
-def bootstrap_team(memory: MemXMemory, team_config: TeamConfig):
+def bootstrap_team(memory: MemorusMemory, team_config: TeamConfig):
     """Inject Team Layer into Memory if team is configured."""
     if not team_config.enabled:
         return  # No-op, Core runs as-is
@@ -413,7 +413,7 @@ def bootstrap_team(memory: MemXMemory, team_config: TeamConfig):
 
 ---
 
-#### Component 10: MemXDaemon (常驻进程)
+#### Component 10: MemorusDaemon (常驻进程)
 
 **FRs Addressed:** FR-018
 
@@ -429,17 +429,17 @@ def bootstrap_team(memory: MemXMemory, team_config: TeamConfig):
 
 ---
 
-#### Component 12: MemXConfig (配置系统)
+#### Component 12: MemorusConfig (配置系统)
 
 **FRs Addressed:** FR-012
 
-**v2.0 变更:** 无变更。Team 配置（`TeamConfig`）完全独立于 `MemXConfig`，不在 MemXConfig 中添加任何字段。
+**v2.0 变更:** 无变更。Team 配置（`TeamConfig`）完全独立于 `MemorusConfig`，不在 MemorusConfig 中添加任何字段。
 
 ---
 
 ### Team Layer Components (v2.0 新增)
 
-以下 7 个组件全部位于 `memx/team/` 包中，Core 不 import 这些模块。
+以下 7 个组件全部位于 `memorus/team/` 包中，Core 不 import 这些模块。
 
 ---
 
@@ -819,8 +819,8 @@ class MandatoryOverride(BaseModel):
 
 ```json
 {
-  "memx_schema_version": 1,
-  "memx_incompatible_tags": []
+  "memorus_schema_version": 1,
+  "memorus_incompatible_tags": []
 }
 ```
 
@@ -850,7 +850,7 @@ class MandatoryOverride(BaseModel):
 
 **Retrieval Flow with Team (search)：**
 ```
-query → MemXMemory.search()
+query → MemorusMemory.search()
   │
   └── ace_enabled=True → RetrievalPipeline.search()
         │
@@ -1020,7 +1020,7 @@ RESPONSE: {"mode": "federation", "cache_count": 1523, "last_sync": "..."}
 
 **Architecture Solution:**
 - **物理路径隔离：** `~/.ace/{product}/` vs `~/.ace/team_cache/{team_id}/`
-- **代码路径隔离：** `memx/core/` 中无任何 Team 写入代码路径
+- **代码路径隔离：** `memorus/core/` 中无任何 Team 写入代码路径
 - **运行时隔离：** TeamCacheStorage 实例独立于 Core StorageBackend 实例
 - **多 Team 隔离：** 不同 `team_id` 的缓存存储在不同子目录
 
@@ -1030,8 +1030,8 @@ RESPONSE: {"mode": "federation", "cache_count": 1523, "last_sync": "..."}
 # .github/workflows/check-decoupling.yml
 - name: Check Core does not import Team
   run: |
-    ! grep -r "from memx.team" memx/core/
-    ! grep -r "import memx.team" memx/core/
+    ! grep -r "from memorus.team" memorus/core/
+    ! grep -r "import memorus.team" memorus/core/
 ```
 
 **Validation:**
@@ -1078,19 +1078,19 @@ class Nominator:
 **Requirement:** Team 功能可完整移除而不影响 Local Memory。
 
 **Architecture Solution:**
-- **包结构解耦：** `memx/team/` 作为独立可选包，Core 不 import
-- **可选依赖：** `pip install memx[team]` 安装 Team 依赖（httpx 等）
-- **初始化层胶水：** `memx/ext/team_bootstrap.py` 是唯一知道 Team 存在的文件
-- **条件导入：** `team_bootstrap.py` 使用 `try: import memx.team` 保护
+- **包结构解耦：** `memorus/team/` 作为独立可选包，Core 不 import
+- **可选依赖：** `pip install memorus[team]` 安装 Team 依赖（httpx 等）
+- **初始化层胶水：** `memorus/ext/team_bootstrap.py` 是唯一知道 Team 存在的文件
+- **条件导入：** `team_bootstrap.py` 使用 `try: import memorus.team` 保护
 
 **Implementation Notes:**
 ```python
-# memx/ext/team_bootstrap.py
+# memorus/ext/team_bootstrap.py
 def try_bootstrap_team(memory, config_path: str = None):
     """Attempt to load and initialize Team Layer. No-op if unavailable."""
     try:
-        from memx.team import TeamConfig, TeamCacheStorage, GitFallbackStorage
-        from memx.team import MultiPoolRetriever
+        from memorus.team import TeamConfig, TeamCacheStorage, GitFallbackStorage
+        from memorus.team import MultiPoolRetriever
     except ImportError:
         return  # Team package not installed, silently skip
 
@@ -1102,8 +1102,8 @@ def try_bootstrap_team(memory, config_path: str = None):
 ```
 
 **Validation:**
-- CI 测试矩阵包含 `pip install memx`（无 team）场景
-- 删除 `memx/team/` 后运行全部 Core 测试
+- CI 测试矩阵包含 `pip install memorus`（无 team）场景
+- 删除 `memorus/team/` 后运行全部 Core 测试
 
 ---
 
@@ -1155,12 +1155,12 @@ Local Bullet → Redactor L1 (regex) → Redactor L2 (user review, CANNOT skip)
 ### Code Organization (v2.0 updated)
 
 ```
-memx/
-├── core/                          # ◄── v2.0: 重命名为 core/（原 memx/ 根目录内容）
+memorus/
+├── core/                          # ◄── v2.0: 重命名为 core/（原 memorus/ 根目录内容）
 │   ├── __init__.py                # 公开 API: Memory, AsyncMemory
-│   ├── memory.py                  # MemXMemory 类
+│   ├── memory.py                  # MemorusMemory 类
 │   ├── async_memory.py
-│   ├── config.py                  # MemXConfig + 子配置 (不含 TeamConfig)
+│   ├── config.py                  # MemorusConfig + 子配置 (不含 TeamConfig)
 │   ├── types.py                   # BulletMetadata (含 schema_version, incompatible_tags)
 │   ├── exceptions.py
 │   ├── engines/
@@ -1278,7 +1278,7 @@ ext/team_bootstrap.py 是唯一知道 Team 存在的胶水层
 | 集成测试 | pytest | 关键路径 100% | add→reflect→curate→search→decay |
 | mem0 兼容测试 | pytest | 100% | 运行 mem0 官方测试套件 |
 | 性能测试 | pytest-benchmark | CI 门禁 | 检索 < 50ms, 蒸馏 < 20ms |
-| 类型检查 | mypy (strict) | 100% | memx/ 包强制 |
+| 类型检查 | mypy (strict) | 100% | memorus/ 包强制 |
 | **Team 单元测试 (v2.0)** | pytest | > 80% | Team 独立 test suite |
 | **解耦验证 (v2.0)** | pytest + CI | 100% | Team 禁用时 Core 测试 100% 通过 |
 | **Team 性能测试 (v2.0)** | pytest-benchmark | CI 门禁 | Team 检索 < 100ms, Shadow Merge < 5ms |
@@ -1289,7 +1289,7 @@ ext/team_bootstrap.py 是唯一知道 Team 存在的胶水层
 Push / PR
     │
     ├── ruff check (lint + format)
-    ├── mypy --strict memx/
+    ├── mypy --strict memorus/
     │
     ├── [Core Tests — must pass without Team]
     │   ├── pytest tests/unit/ --ignore=tests/unit/team/ --cov --cov-fail-under=80
@@ -1298,7 +1298,7 @@ Push / PR
     │   └── pytest tests/performance/ --benchmark-compare
     │
     ├── [Decoupling Check] ◄── v2.0
-    │   ├── grep -r "from memx.team" memx/core/ → MUST be empty
+    │   ├── grep -r "from memorus.team" memorus/core/ → MUST be empty
     │   └── pytest tests/unit/test_decoupling.py
     │
     ├── [Team Tests — separate suite] ◄── v2.0
@@ -1312,7 +1312,7 @@ Push / PR
 Release Tag
     │
     ├── poetry build
-    ├── twine upload (PyPI) — memx + memx[team]
+    ├── twine upload (PyPI) — memorus + memorus[team]
     └── GitHub Release
 ```
 
@@ -1323,16 +1323,16 @@ Release Tag
 ### Package Distribution
 
 ```
-pip install memx            # Core only: Rules-only, 纯关键词
-pip install memx[onnx]      # + 本地 ONNX Embedding
-pip install memx[team]      # + Team Memory (httpx, etc.)  ◄── v2.0
-pip install memx[graph]     # + 图存储支持
-pip install memx[all]       # 全部依赖
+pip install memorus            # Core only: Rules-only, 纯关键词
+pip install memorus[onnx]      # + 本地 ONNX Embedding
+pip install memorus[team]      # + Team Memory (httpx, etc.)  ◄── v2.0
+pip install memorus[graph]     # + 图存储支持
+pip install memorus[all]       # 全部依赖
 ```
 
 ### ACE Sync Server (独立项目, v2.0)
 
-ACE Sync Server 作为**独立项目**发布，不与 memx 核心库耦合。
+ACE Sync Server 作为**独立项目**发布，不与 memorus 核心库耦合。
 
 | 部署模式 | 适用规模 | 技术栈 | 部署时间 |
 |----------|----------|--------|----------|
@@ -1370,19 +1370,19 @@ services:
 | FR-009 | Generator 混合检索 | GeneratorEngine, 4x Matcher | `core/engines/generator/` |
 | FR-010 | Generator 降级模式 | GeneratorEngine.mode | `core/engines/generator/engine.py` |
 | FR-011 | Token 预算 | TokenBudgetTrimmer | `core/utils/token_counter.py` |
-| FR-012 | 配置系统 | MemXConfig + 子配置 | `core/config.py` |
-| FR-013 | API 兼容 | MemXMemory (Decorator) | `core/memory.py` |
+| FR-012 | 配置系统 | MemorusConfig + 子配置 | `core/config.py` |
+| FR-013 | API 兼容 | MemorusMemory (Decorator) | `core/memory.py` |
 | FR-014 | Pre-Inference Hook | PreInferenceHook | `core/integration/hooks.py` |
 | FR-015 | Post-Action Hook | PostActionHook | `core/integration/hooks.py` |
 | FR-016 | Session-End Hook | SessionEndHook | `core/integration/hooks.py` |
 | FR-017 | ONNX Embedding | ONNXEmbedder | `core/embeddings/onnx.py` |
-| FR-018 | Daemon | MemXDaemon + DaemonClient | `core/daemon/` |
+| FR-018 | Daemon | MemorusDaemon + DaemonClient | `core/daemon/` |
 | FR-019 | LLM 增强蒸馏 | ReflectorEngine (llm mode) | `core/engines/reflector/engine.py` |
 | FR-020 | 冲突检测 | ConflictDetector | `core/engines/curator/conflict.py` |
-| FR-021 | 层级 Scope | MemXMemory + Generator | `core/memory.py` — v2.0 +team:{id} |
-| FR-022 | 导入导出 | MemXMemory.export/import | `core/memory.py` — v2.0 +JSONL format |
+| FR-021 | 层级 Scope | MemorusMemory + Generator | `core/memory.py` — v2.0 +team:{id} |
+| FR-022 | 导入导出 | MemorusMemory.export/import | `core/memory.py` — v2.0 +JSONL format |
 | FR-023 | CLI 命令 | Click CLI app | `core/cli/main.py` |
-| FR-024 | PyPI 发布 | pyproject.toml + CI/CD | v2.0 +memx[team] extra |
+| FR-024 | PyPI 发布 | pyproject.toml + CI/CD | v2.0 +memorus[team] extra |
 | **FR-025** | **Core/Team 解耦** | **core/, team/, ext/** | **`ext/team_bootstrap.py`** |
 | **FR-026** | **StorageBackend 扩展** | **MultiPoolRetriever** | **`team/merger.py`** |
 | **FR-027** | **Git Fallback** | **GitFallbackStorage** | **`team/git_storage.py`** |
@@ -1422,7 +1422,7 @@ services:
 
 ### Decisions 1-5 (v1.0)
 
-与 v1.0 完全一致。参见：Decorator vs 继承、Bullet 嵌入 payload vs 独立表、memx/ 独立包、Rules-only 默认、同步管线。
+与 v1.0 完全一致。参见：Decorator vs 继承、Bullet 嵌入 payload vs 独立表、memorus/ 独立包、Rules-only 默认、同步管线。
 
 ### Decision 6: 组合模式 vs 修改 Generator (v2.0)
 
@@ -1460,9 +1460,9 @@ services:
 
 ---
 
-### Decision 9: TeamConfig 独立 vs 嵌入 MemXConfig (v2.0)
+### Decision 9: TeamConfig 独立 vs 嵌入 MemorusConfig (v2.0)
 
-**选择：** TeamConfig 完全独立于 MemXConfig
+**选择：** TeamConfig 完全独立于 MemorusConfig
 
 **Trade-off:**
 - 得到：Core Config 零修改，Team 可独立配置和升级
@@ -1488,7 +1488,7 @@ services:
 
 ### v1.0 Issues (preserved)
 
-1. **PyPI 包名 `memx` 可用性**
+1. **PyPI 包名 `memorus` 可用性**
 2. **mem0 v1.0.x → v2.x 升级风险**
 3. **ONNX 模型中文质量**
 4. **Windows Named Pipe Python 支持**
@@ -1500,7 +1500,7 @@ services:
 7. **Federation Server 落地复杂度**：即使 Lite 模式，仍需管理容器。缓解：提供 Docker Compose 一键部署。
 8. **Taxonomy 冷启动**：第一批 tags 从哪来。缓解：预设模板 + 种子聚合。
 9. **Supersede 时间窗口**：提交到全员同步可能有数天延迟。缓解：urgent 级别即时推送。
-10. **Core/Team 包重构成本**：将 `memx/` 重命名为 `memx/core/` 需要更新所有 import path。缓解：P0 阶段一次性完成。
+10. **Core/Team 包重构成本**：将 `memorus/` 重命名为 `memorus/core/` 需要更新所有 import path。缓解：P0 阶段一次性完成。
 
 ---
 
@@ -1521,7 +1521,7 @@ Team Cache 固定 ~3MB（2000 条 × 384 维 × 4 bytes）。
 ## Future Considerations
 
 ### v1.0 (preserved)
-- MemX Cloud：基于 Daemon 扩展为远程服务
+- Memorus Cloud：基于 Daemon 扩展为远程服务
 - 多模型 Embedding 切换
 - Rust 核心引擎（L1-L3 Matcher via PyO3）
 - MCP Server 模式

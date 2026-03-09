@@ -1,4 +1,4 @@
-"""Unit tests for memx.integration.cli_hooks.
+"""Unit tests for memorus.integration.cli_hooks.
 
 Covers CLIPreInferenceHook (STORY-033), CLIPostActionHook,
 CLISessionEndHook, and setup_signal_handlers (STORY-034).
@@ -15,14 +15,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from memx.core.config import IntegrationConfig
-from memx.core.integration.cli_hooks import (
+from memorus.core.config import IntegrationConfig
+from memorus.core.integration.cli_hooks import (
     CLIPostActionHook,
     CLIPreInferenceHook,
     CLISessionEndHook,
     setup_signal_handlers,
 )
-from memx.core.integration.hooks import (
+from memorus.core.integration.hooks import (
     ContextInjection,
     PostActionHook,
     PreInferenceHook,
@@ -57,7 +57,7 @@ def _sample_results(count: int = 2) -> dict[str, Any]:
             "id": f"mem_{i:03d}",
             "memory": f"Sample memory content {i}.",
             "score": round(0.9 - i * 0.1, 2),
-            "metadata": {"memx_knowledge_type": "preference" if i == 0 else "tool_pattern"},
+            "metadata": {"memorus_knowledge_type": "preference" if i == 0 else "tool_pattern"},
         })
     return {"results": results}
 
@@ -172,7 +172,7 @@ class TestOnUserInputExceptions:
     ) -> None:
         mock_mem = _make_mock_memory(search_side_effect=RuntimeError("db down"))
         hook = CLIPreInferenceHook(mock_mem)
-        with caplog.at_level(logging.WARNING, logger="memx.core.integration.cli_hooks"):
+        with caplog.at_level(logging.WARNING, logger="memorus.core.integration.cli_hooks"):
             result = asyncio.run(hook.on_user_input("test query"))
         assert result.memories == []
         assert result.rendered == ""
@@ -197,8 +197,8 @@ class TestFormatXML:
         hook = CLIPreInferenceHook(mock_mem)
         result = asyncio.run(hook.on_user_input("query"))
         assert result.format == "xml"
-        assert "<memx-context>" in result.rendered
-        assert "</memx-context>" in result.rendered
+        assert "<memorus-context>" in result.rendered
+        assert "</memorus-context>" in result.rendered
 
     def test_xml_contains_memory_elements(self) -> None:
         mock_mem = _make_mock_memory(_sample_results(2))
@@ -220,13 +220,13 @@ class TestFormatXML:
         assert result.rendered.count("<memory ") == 1
         assert result.rendered.count("</memory>") == 1
 
-    def test_xml_wraps_with_memx_context(self) -> None:
+    def test_xml_wraps_with_memorus_context(self) -> None:
         mock_mem = _make_mock_memory(_sample_results(1))
         hook = CLIPreInferenceHook(mock_mem)
         result = asyncio.run(hook.on_user_input("query"))
         lines = result.rendered.strip().split("\n")
-        assert lines[0] == "<memx-context>"
-        assert lines[-1] == "</memx-context>"
+        assert lines[0] == "<memorus-context>"
+        assert lines[-1] == "</memorus-context>"
 
     def test_xml_metadata_missing_type_defaults_to_knowledge(self) -> None:
         data = {"results": [{"id": "x", "memory": "content", "score": 0.5, "metadata": {}}]}
@@ -255,7 +255,7 @@ class TestFormatMarkdown:
         hook = CLIPreInferenceHook(mock_mem, config=config)
         result = asyncio.run(hook.on_user_input("query"))
         assert result.format == "markdown"
-        assert "## MemX Context" in result.rendered
+        assert "## Memorus Context" in result.rendered
 
     def test_markdown_contains_scores_and_content(self) -> None:
         config = IntegrationConfig(context_template="markdown")
@@ -271,7 +271,7 @@ class TestFormatMarkdown:
         hook = CLIPreInferenceHook(mock_mem, config=config)
         result = asyncio.run(hook.on_user_input("query"))
         lines = result.rendered.strip().split("\n")
-        assert lines[0] == "## MemX Context"
+        assert lines[0] == "## Memorus Context"
         assert lines[1].startswith("- **[")
 
 
@@ -288,13 +288,13 @@ class TestFormatPlain:
         result = asyncio.run(hook.on_user_input("query"))
         assert result.format == "plain"
 
-    def test_plain_contains_memx_prefix(self) -> None:
+    def test_plain_contains_memorus_prefix(self) -> None:
         config = IntegrationConfig(context_template="plain")
         mock_mem = _make_mock_memory(_sample_results(2))
         hook = CLIPreInferenceHook(mock_mem, config=config)
         result = asyncio.run(hook.on_user_input("query"))
-        assert "[MemX] Sample memory content 0." in result.rendered
-        assert "[MemX] Sample memory content 1." in result.rendered
+        assert "[Memorus] Sample memory content 0." in result.rendered
+        assert "[Memorus] Sample memory content 1." in result.rendered
 
     def test_plain_no_header(self) -> None:
         config = IntegrationConfig(context_template="plain")
@@ -302,7 +302,7 @@ class TestFormatPlain:
         hook = CLIPreInferenceHook(mock_mem, config=config)
         result = asyncio.run(hook.on_user_input("query"))
         lines = result.rendered.strip().split("\n")
-        assert lines[0].startswith("[MemX]")
+        assert lines[0].startswith("[Memorus]")
 
 
 # ===========================================================================
@@ -316,7 +316,7 @@ class TestFormatFallback:
         mock_mem = _make_mock_memory(_sample_results(1))
         hook = CLIPreInferenceHook(mock_mem, config=config)
         result = asyncio.run(hook.on_user_input("query"))
-        assert "<memx-context>" in result.rendered
+        assert "<memorus-context>" in result.rendered
         assert result.format == "json"  # format field reflects config, not actual
 
 
@@ -327,7 +327,7 @@ class TestFormatFallback:
 
 class TestWithIntegrationManager:
     def test_manager_can_fire_cli_hook(self) -> None:
-        from memx.core.integration.manager import IntegrationManager
+        from memorus.core.integration.manager import IntegrationManager
 
         mock_mem = _make_mock_memory(_sample_results(2))
         config = IntegrationConfig()
@@ -340,7 +340,7 @@ class TestWithIntegrationManager:
         assert len(result.memories) == 2
 
     def test_manager_auto_recall_disabled_skips_cli_hook(self) -> None:
-        from memx.core.integration.manager import IntegrationManager
+        from memorus.core.integration.manager import IntegrationManager
 
         config = IntegrationConfig(auto_recall=False)
         mock_mem = _make_mock_memory(_sample_results(1))
@@ -469,7 +469,7 @@ class TestCLIPostActionHookOnToolResult:
         hook = CLIPostActionHook(mock_mem)
         # Patch _format_tool_event to raise
         with patch.object(hook, "_format_tool_event", side_effect=RuntimeError("fmt error")):
-            with caplog.at_level(logging.WARNING, logger="memx.core.integration.cli_hooks"):
+            with caplog.at_level(logging.WARNING, logger="memorus.core.integration.cli_hooks"):
                 asyncio.run(hook.on_tool_result(_make_tool_event()))
         assert "CLIPostActionHook failed to submit distillation" in caplog.text
         hook.shutdown(wait=True)
@@ -479,7 +479,7 @@ class TestCLIPostActionHookOnToolResult:
     ) -> None:
         mock_mem = _make_mock_memory_for_add(add_side_effect=RuntimeError("db error"))
         hook = CLIPostActionHook(mock_mem)
-        with caplog.at_level(logging.WARNING, logger="memx.core.integration.cli_hooks"):
+        with caplog.at_level(logging.WARNING, logger="memorus.core.integration.cli_hooks"):
             asyncio.run(hook.on_tool_result(_make_tool_event()))
             hook.shutdown(wait=True)
         assert "Background distillation failed" in caplog.text
@@ -499,7 +499,7 @@ class TestCLIPostActionHookShutdown:
 
 class TestCLIPostActionHookWithManager:
     def test_manager_fires_post_action_hook(self) -> None:
-        from memx.core.integration.manager import IntegrationManager
+        from memorus.core.integration.manager import IntegrationManager
 
         mock_mem = _make_mock_memory_for_add()
         config = IntegrationConfig()
@@ -512,7 +512,7 @@ class TestCLIPostActionHookWithManager:
         mock_mem.add.assert_called_once()
 
     def test_manager_auto_reflect_disabled_skips(self) -> None:
-        from memx.core.integration.manager import IntegrationManager
+        from memorus.core.integration.manager import IntegrationManager
 
         config = IntegrationConfig(auto_reflect=False)
         mock_mem = _make_mock_memory_for_add()
@@ -596,7 +596,7 @@ class TestCLISessionEndHookOnSessionEnd:
                 "metadata": {
                     "created_at": "2026-01-01T00:00:00+00:00",
                     "recall_count": 3,
-                    "memx_decay_weight": 0.8,
+                    "memorus_decay_weight": 0.8,
                 },
             }
         ]
@@ -648,7 +648,7 @@ class TestCLISessionEndHookOnSessionEnd:
         mock_decay = _make_mock_decay_engine()
         hook = CLISessionEndHook(mock_mem, mock_decay)
 
-        with caplog.at_level(logging.WARNING, logger="memx.core.integration.cli_hooks"):
+        with caplog.at_level(logging.WARNING, logger="memorus.core.integration.cli_hooks"):
             asyncio.run(hook.on_session_end("sess-001"))
 
         assert "Decay sweep failed" in caplog.text or "CLISessionEndHook failed" in caplog.text
@@ -667,7 +667,7 @@ class TestCLISessionEndHookOnSessionEnd:
         mock_decay = _make_mock_decay_engine(sweep_side_effect=RuntimeError("sweep error"))
         hook = CLISessionEndHook(mock_mem, mock_decay)
 
-        with caplog.at_level(logging.WARNING, logger="memx.core.integration.cli_hooks"):
+        with caplog.at_level(logging.WARNING, logger="memorus.core.integration.cli_hooks"):
             asyncio.run(hook.on_session_end("sess-001"))
 
         assert "sweep failed" in caplog.text.lower() or "failed" in caplog.text.lower()
@@ -720,7 +720,7 @@ class TestCLISessionEndHookOnSessionEnd:
 
 class TestCLISessionEndHookWithManager:
     def test_manager_fires_session_end_hook(self) -> None:
-        from memx.core.integration.manager import IntegrationManager
+        from memorus.core.integration.manager import IntegrationManager
 
         bullets = [
             {
@@ -741,7 +741,7 @@ class TestCLISessionEndHookWithManager:
         mock_decay.sweep.assert_called_once()
 
     def test_manager_sweep_on_exit_disabled_skips(self) -> None:
-        from memx.core.integration.manager import IntegrationManager
+        from memorus.core.integration.manager import IntegrationManager
 
         config = IntegrationConfig(sweep_on_exit=False)
         mock_mem = _make_mock_memory_for_add()
@@ -762,7 +762,7 @@ class TestCLISessionEndHookWithManager:
 
 class TestSetupSignalHandlers:
     def test_registers_sigint(self) -> None:
-        from memx.core.integration.manager import IntegrationManager
+        from memorus.core.integration.manager import IntegrationManager
 
         mgr = IntegrationManager()
         old_handler = signal.getsignal(signal.SIGINT)
@@ -776,7 +776,7 @@ class TestSetupSignalHandlers:
             signal.signal(signal.SIGINT, old_handler)
 
     def test_signal_handler_calls_fire_session_end(self) -> None:
-        from memx.core.integration.manager import IntegrationManager
+        from memorus.core.integration.manager import IntegrationManager
 
         mgr = IntegrationManager()
         mock_fire = MagicMock()
@@ -800,7 +800,7 @@ class TestSetupSignalHandlers:
 
     def test_repeated_signal_ignored(self) -> None:
         """Second signal during shutdown should be ignored (no double fire)."""
-        from memx.core.integration.manager import IntegrationManager
+        from memorus.core.integration.manager import IntegrationManager
 
         mgr = IntegrationManager()
         call_count = 0

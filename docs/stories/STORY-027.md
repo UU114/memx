@@ -80,7 +80,7 @@ class ScoreMerger:
 ```
 
 ### Components
-- `memx/engines/generator/score_merger.py`
+- `memorus/engines/generator/score_merger.py`
 
 ### Scoring Formula Detail
 ```
@@ -113,7 +113,7 @@ FinalScore = BlendedScore × DecayWeight × RecencyBoost
 
 ## Definition of Done
 
-- [ ] `memx/engines/generator/score_merger.py` 实现
+- [ ] `memorus/engines/generator/score_merger.py` 实现
 - [ ] 全模式评分测试（full + degraded）
 - [ ] RecencyBoost 计算测试
 - [ ] 权重归一化测试

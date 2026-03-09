@@ -12,7 +12,7 @@
 
 ## User Story
 
-As a MemX developer
+As a Memorus developer
 I want Team Layer to be injected conditionally at startup
 So that Core code never directly depends on Team
 
@@ -23,7 +23,7 @@ So that Core code never directly depends on Team
 ### Background
 Core/Team 解耦的关键胶水层。`team_bootstrap.py` 是唯一知道 Team Layer 存在的模块，它在 `Memory` 初始化时条件检测 Team 包是否安装、是否配置启用，然后通过组合模式将 Team 的 `MultiPoolRetriever` 注入到 `RetrievalPipeline` 中。
 
-Core 代码永远不会 `import memx.team`，所有 Team 依赖通过此 bootstrap 模块条件注入。
+Core 代码永远不会 `import memorus.team`，所有 Team 依赖通过此 bootstrap 模块条件注入。
 
 ### Scope
 **In scope:**
@@ -64,13 +64,13 @@ Core 代码永远不会 `import memx.team`，所有 Team 依赖通过此 bootstr
 ## Technical Notes
 
 ### Components
-- `memx/ext/team_bootstrap.py` — 唯一知道 Team 存在的胶水层
-- `memx/core/memory.py` — Memory.__init__ 调用 bootstrap
+- `memorus/ext/team_bootstrap.py` — 唯一知道 Team 存在的胶水层
+- `memorus/core/memory.py` — Memory.__init__ 调用 bootstrap
 
 ### Implementation
 
 ```python
-# memx/ext/team_bootstrap.py
+# memorus/ext/team_bootstrap.py
 import logging
 from pathlib import Path
 
@@ -80,11 +80,11 @@ def try_bootstrap_team(memory, config_path: str | None = None) -> bool:
     """Conditionally inject Team Layer into Memory.
 
     Returns True if Team Layer was successfully bootstrapped.
-    This is the ONLY module that imports from memx.team.
+    This is the ONLY module that imports from memorus.team.
     """
     try:
-        from memx.team.config import TeamConfig, load_team_config
-        from memx.team.merger import MultiPoolRetriever
+        from memorus.team.config import TeamConfig, load_team_config
+        from memorus.team.merger import MultiPoolRetriever
     except ImportError:
         logger.debug("Team Layer not installed, skipping bootstrap")
         return False
@@ -130,17 +130,17 @@ def _detect_git_fallback() -> bool:
 
 def _build_multi_pool_retriever(memory, team_config, git_fallback: bool):
     """Build MultiPoolRetriever with appropriate Team storage."""
-    from memx.team.merger import MultiPoolRetriever
+    from memorus.team.merger import MultiPoolRetriever
 
     pools = []
 
     if git_fallback:
-        from memx.team.git_storage import GitFallbackStorage
+        from memorus.team.git_storage import GitFallbackStorage
         git_storage = GitFallbackStorage()
         pools.append(("git_fallback", git_storage))
 
     if team_config.server_url:
-        from memx.team.cache_storage import TeamCacheStorage
+        from memorus.team.cache_storage import TeamCacheStorage
         cache_storage = TeamCacheStorage(team_config)
         pools.append(("federation", cache_storage))
 
@@ -155,7 +155,7 @@ def _build_multi_pool_retriever(memory, team_config, git_fallback: bool):
 
 ```python
 # In Memory.__init__
-from memx.ext.team_bootstrap import try_bootstrap_team
+from memorus.ext.team_bootstrap import try_bootstrap_team
 
 class Memory:
     def __init__(self, ...):
@@ -174,7 +174,7 @@ class Memory:
 ## Dependencies
 
 **Prerequisite Stories:**
-- STORY-048: 重构 memx/ → memx/core/
+- STORY-048: 重构 memorus/ → memorus/core/
 - STORY-049: TeamConfig 独立配置
 
 **Blocked Stories:**

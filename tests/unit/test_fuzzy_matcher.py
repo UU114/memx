@@ -1,4 +1,4 @@
-"""Unit tests for memx.engines.generator.fuzzy_matcher — L2 fuzzy matching."""
+"""Unit tests for memorus.engines.generator.fuzzy_matcher — L2 fuzzy matching."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import time
 
 import pytest  # noqa: F401 (used by pytest.approx)
 
-from memx.core.engines.generator.fuzzy_matcher import FuzzyMatcher
+from memorus.core.engines.generator.fuzzy_matcher import FuzzyMatcher
 
 # ── Basic matching ─────────────────────────────────────────────────────
 

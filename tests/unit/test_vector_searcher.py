@@ -1,4 +1,4 @@
-"""Unit tests for memx.engines.generator.vector_searcher — VectorSearcher."""
+"""Unit tests for memorus.engines.generator.vector_searcher — VectorSearcher."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from memx.core.engines.generator.vector_searcher import (
+from memorus.core.engines.generator.vector_searcher import (
     VectorMatch,
     VectorSearcher,
     _clamp,

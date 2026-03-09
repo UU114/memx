@@ -5,9 +5,9 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from memx.config import ReflectorConfig
-from memx.engines.reflector.engine import ReflectorEngine
-from memx.types import InteractionEvent
+from memorus.config import ReflectorConfig
+from memorus.engines.reflector.engine import ReflectorEngine
+from memorus.types import InteractionEvent
 
 
 def main() -> None:

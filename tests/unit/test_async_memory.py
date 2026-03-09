@@ -1,12 +1,12 @@
-"""Unit tests for memx.async_memory — AsyncMemory async wrapper class."""
+"""Unit tests for memorus.async_memory — AsyncMemory async wrapper class."""
 
 from __future__ import annotations
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from memx.core.async_memory import AsyncMemory
-from memx.core.config import MemXConfig
+from memorus.core.async_memory import AsyncMemory
+from memorus.core.config import MemorusConfig
 
 
 # ---------------------------------------------------------------------------
@@ -22,7 +22,7 @@ def async_memory() -> AsyncMemory:
     that tests do not require mem0 to be installed or an API key to be set.
     """
     m = AsyncMemory.__new__(AsyncMemory)
-    m._config = MemXConfig()
+    m._config = MemorusConfig()
     m._mem0 = AsyncMock()
     m._mem0_init_error = None
 
@@ -52,9 +52,9 @@ class TestInit:
     """AsyncMemory initialization tests."""
 
     def test_init_default_config(self, async_memory: AsyncMemory) -> None:
-        """AsyncMemory() uses default MemXConfig (ace_enabled=False)."""
+        """AsyncMemory() uses default MemorusConfig (ace_enabled=False)."""
         assert async_memory._config.ace_enabled is False
-        assert isinstance(async_memory._config, MemXConfig)
+        assert isinstance(async_memory._config, MemorusConfig)
 
     def test_from_config(self) -> None:
         """AsyncMemory.from_config({}) works as an alternate constructor."""
@@ -210,8 +210,8 @@ class TestConfigProperty:
     """Tests for the config property."""
 
     def test_config_property(self, async_memory: AsyncMemory) -> None:
-        """config property returns the MemXConfig instance."""
-        assert isinstance(async_memory.config, MemXConfig)
+        """config property returns the MemorusConfig instance."""
+        assert isinstance(async_memory.config, MemorusConfig)
         assert async_memory.config.ace_enabled is False
 
 
@@ -226,7 +226,7 @@ class TestErrorHandling:
     def test_ensure_mem0_raises(self) -> None:
         """_ensure_mem0 raises RuntimeError when _mem0 is None."""
         m = AsyncMemory.__new__(AsyncMemory)
-        m._config = MemXConfig()
+        m._config = MemorusConfig()
         m._mem0 = None
         m._mem0_init_error = ImportError("No module named 'mem0'")
         m._ingest_pipeline = None

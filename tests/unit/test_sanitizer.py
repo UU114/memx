@@ -1,4 +1,4 @@
-"""Unit tests for memx.privacy.sanitizer -- PrivacySanitizer and privacy patterns."""
+"""Unit tests for memorus.privacy.sanitizer -- PrivacySanitizer and privacy patterns."""
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ import re
 
 import pytest
 
-from memx.core.privacy.patterns import BUILTIN_PATTERNS
-from memx.core.privacy.sanitizer import FilteredItem, PrivacySanitizer, SanitizeResult
+from memorus.core.privacy.patterns import BUILTIN_PATTERNS
+from memorus.core.privacy.sanitizer import FilteredItem, PrivacySanitizer, SanitizeResult
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────

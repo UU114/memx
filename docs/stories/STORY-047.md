@@ -12,7 +12,7 @@
 
 ## User Story
 
-As a MemX user
+As a Memorus user
 I want to know if my memories contain contradictions
 So that I can resolve conflicting knowledge
 
@@ -21,7 +21,7 @@ So that I can resolve conflicting knowledge
 ## Description
 
 ### Background
-当前 `memx/engines/curator/conflict.py` 为空文件（占位符），`CuratorConfig.conflict_detection: bool = False` 配置项已存在但未被使用。`CuratorEngine.curate()` 完全忽略此配置。
+当前 `memorus/engines/curator/conflict.py` 为空文件（占位符），`CuratorConfig.conflict_detection: bool = False` 配置项已存在但未被使用。`CuratorEngine.curate()` 完全忽略此配置。
 
 冲突检测的目标是识别"相似但矛盾"的记忆对。典型场景：
 - 记忆 A: "Use `--no-cache` flag with pip install"
@@ -31,11 +31,11 @@ So that I can resolve conflicting knowledge
 
 ### Scope
 **In scope:**
-- `ConflictDetector` 类实现（`memx/engines/curator/conflict.py`）
+- `ConflictDetector` 类实现（`memorus/engines/curator/conflict.py`）
 - 基于 similarity 范围（0.5~0.8）的冲突候选筛选
 - 基于否定词/对立语义的矛盾判断（规则模式）
 - `Memory.detect_conflicts()` 公开方法
-- CLI `memx conflicts` 命令
+- CLI `memorus conflicts` 命令
 - 冲突结果数据结构 `Conflict`
 - `CuratorConfig.conflict_detection` 配置项启用
 
@@ -56,7 +56,7 @@ So that I can resolve conflicting knowledge
 - [ ] 不阻塞入库流程（detect_conflicts 是独立调用，不在 IngestPipeline 中）
 - [ ] `Memory.detect_conflicts(user_id=None)` 公开方法
 - [ ] `CuratorConfig.conflict_detection = True` 时，`curate()` 在结果中附带冲突警告（不阻止入库）
-- [ ] `memx conflicts [--json] [--user-id UID]` CLI 命令显示冲突列表
+- [ ] `memorus conflicts [--json] [--user-id UID]` CLI 命令显示冲突列表
 - [ ] 无冲突时返回空列表 / CLI 显示 "No conflicts detected"
 - [ ] 大数据集优化：O(n²) 比较使用预过滤（先按 section 分组，仅组内比较）
 
@@ -65,16 +65,16 @@ So that I can resolve conflicting knowledge
 ## Technical Notes
 
 ### Components
-- `memx/engines/curator/conflict.py` — `ConflictDetector` 类（替换空文件）
-- `memx/engines/curator/engine.py` — `CuratorEngine` 集成冲突检测
-- `memx/memory.py` — `Memory.detect_conflicts()` 方法
-- `memx/config.py` — `CuratorConfig` 新增冲突检测参数
-- `memx/cli/main.py` — `memx conflicts` 命令
+- `memorus/engines/curator/conflict.py` — `ConflictDetector` 类（替换空文件）
+- `memorus/engines/curator/engine.py` — `CuratorEngine` 集成冲突检测
+- `memorus/memory.py` — `Memory.detect_conflicts()` 方法
+- `memorus/config.py` — `CuratorConfig` 新增冲突检测参数
+- `memorus/cli/main.py` — `memorus conflicts` 命令
 
 ### Data Structures
 
 ```python
-# memx/engines/curator/conflict.py
+# memorus/engines/curator/conflict.py
 from dataclasses import dataclass, field
 
 @dataclass
@@ -169,7 +169,7 @@ class ConflictDetector:
     def _group_by_section(memories: list[ExistingBullet]) -> dict[str, list[ExistingBullet]]:
         groups: dict[str, list[ExistingBullet]] = {}
         for mem in memories:
-            section = mem.metadata.get("memx_section", "general")
+            section = mem.metadata.get("memorus_section", "general")
             groups.setdefault(section, []).append(mem)
         return groups
 ```
@@ -239,10 +239,10 @@ def conflicts(ctx, as_json, user_id):
 ```
 
 ### Dependencies on Existing Code
-- `memx/engines/curator/engine.py:CuratorEngine` — `text_similarity()` 静态方法复用
-- `memx/engines/curator/engine.py:ExistingBullet` — 记忆数据结构
-- `memx/memory.py:Memory` — `get_all()` 获取全部记忆
-- `memx/utils/bullet_factory.py:BulletFactory` — payload 解析
+- `memorus/engines/curator/engine.py:CuratorEngine` — `text_similarity()` 静态方法复用
+- `memorus/engines/curator/engine.py:ExistingBullet` — 记忆数据结构
+- `memorus/memory.py:Memory` — `get_all()` 获取全部记忆
+- `memorus/utils/bullet_factory.py:BulletFactory` — payload 解析
 
 ### Edge Cases
 - 空数据库 → 返回空 `ConflictResult`
@@ -271,7 +271,7 @@ def conflicts(ctx, as_json, user_id):
 - [ ] 否定词 + 对立关键词检测规则覆盖中英文
 - [ ] `Memory.detect_conflicts()` 方法实现
 - [ ] `CuratorEngine` 集成冲突警告（`conflict_detection=True` 时）
-- [ ] CLI `memx conflicts` 命令实现
+- [ ] CLI `memorus conflicts` 命令实现
 - [ ] 单元测试覆盖：正例矛盾对、反例无矛盾、边界 similarity
 - [ ] mypy --strict 通过
 - [ ] ruff check 通过

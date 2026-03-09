@@ -1,10 +1,10 @@
-"""Unit tests for memx.engines.generator.exact_matcher — L1 ExactMatcher."""
+"""Unit tests for memorus.engines.generator.exact_matcher — L1 ExactMatcher."""
 
 from __future__ import annotations
 
 import time
 
-from memx.core.engines.generator.exact_matcher import (
+from memorus.core.engines.generator.exact_matcher import (
     ExactMatcher,
     MatchResult,
     tokenize_query,

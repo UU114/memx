@@ -6,8 +6,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from memx.team.config import TeamConfig
-from memx.team.tag_filter import TagSubscriptionManager
+from memorus.team.config import TeamConfig
+from memorus.team.tag_filter import TagSubscriptionManager
 
 
 # ---------------------------------------------------------------------------

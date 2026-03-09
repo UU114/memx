@@ -5,7 +5,7 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from memx.privacy.sanitizer import PrivacySanitizer
+from memorus.privacy.sanitizer import PrivacySanitizer
 
 
 def main() -> None:

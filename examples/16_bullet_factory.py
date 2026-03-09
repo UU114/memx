@@ -2,7 +2,7 @@
 
 Demonstrates:
   - BulletFactory.create() -> BulletMetadata construction
-  - to_mem0_metadata() -> memx_-prefixed dict (enum->str, list->JSON, datetime->ISO)
+  - to_mem0_metadata() -> memorus_-prefixed dict (enum->str, list->JSON, datetime->ISO)
   - from_mem0_payload() -> BulletMetadata reconstruction from mem0 dict
   - Round-trip preservation: original == deserialized
   - merge_metadata() -> partial update merging
@@ -15,8 +15,8 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from memx.types import BulletMetadata, BulletSection, KnowledgeType, SourceType
-from memx.utils.bullet_factory import BulletFactory
+from memorus.types import BulletMetadata, BulletSection, KnowledgeType, SourceType
+from memorus.utils.bullet_factory import BulletFactory
 
 logger = logging.getLogger(__name__)
 
@@ -48,18 +48,18 @@ def main() -> None:
     print(f"       tools={meta.related_tools}, entities={meta.key_entities}")
 
     # ── 2. Serialize to mem0 payload ─────────────────────────────────
-    print("\n[2/5] to_mem0_metadata() — serialize to memx_-prefixed dict")
+    print("\n[2/5] to_mem0_metadata() — serialize to memorus_-prefixed dict")
     mem0_meta = BulletFactory.to_mem0_metadata(meta)
     logger.debug("Serialized keys: %s", list(mem0_meta.keys()))
 
-    assert all(k.startswith("memx_") for k in mem0_meta), "All keys must have memx_ prefix"
-    assert mem0_meta["memx_section"] == "debugging"
-    assert mem0_meta["memx_knowledge_type"] == "method"
-    assert isinstance(mem0_meta["memx_related_tools"], str), "Lists should be JSON strings"
+    assert all(k.startswith("memorus_") for k in mem0_meta), "All keys must have memorus_ prefix"
+    assert mem0_meta["memorus_section"] == "debugging"
+    assert mem0_meta["memorus_knowledge_type"] == "method"
+    assert isinstance(mem0_meta["memorus_related_tools"], str), "Lists should be JSON strings"
 
     print(f"       Keys: {list(mem0_meta.keys())[:6]}...")
-    print(f"       memx_section='{mem0_meta['memx_section']}'")
-    print(f"       memx_related_tools='{mem0_meta['memx_related_tools']}' (JSON string)")
+    print(f"       memorus_section='{mem0_meta['memorus_section']}'")
+    print(f"       memorus_related_tools='{mem0_meta['memorus_related_tools']}' (JSON string)")
 
     # ── 3. Deserialize from mem0 payload ─────────────────────────────
     print("\n[3/5] from_mem0_payload() — deserialize back to BulletMetadata")
@@ -105,11 +105,11 @@ def main() -> None:
         "id": "abc123",
         "memory": "Use ruff check for linting",
         "metadata": {
-            "memx_section": "tools",
-            "memx_knowledge_type": "method",
-            "memx_instructivity_score": 70.0,
-            "memx_related_tools": '["ruff"]',
-            "memx_scope": "global",
+            "memorus_section": "tools",
+            "memorus_knowledge_type": "method",
+            "memorus_instructivity_score": 70.0,
+            "memorus_related_tools": '["ruff"]',
+            "memorus_scope": "global",
         },
     }
     reconstructed = BulletFactory.from_export_payload(export_entry)

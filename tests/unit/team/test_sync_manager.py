@@ -12,14 +12,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from memx.team.config import TeamConfig
-from memx.team.sync_client import (
+from memorus.team.config import TeamConfig
+from memorus.team.sync_client import (
     BulletIndexEntry,
     IndexResponse,
     SyncConnectionError,
 )
-from memx.team.sync_manager import SyncManager
-from memx.team.types import TeamBullet
+from memorus.team.sync_manager import SyncManager
+from memorus.team.types import TeamBullet
 
 
 # ---------------------------------------------------------------------------

@@ -61,9 +61,9 @@ So that knowledge is organized and discoverable
 ## Technical Notes
 
 ### Components
-- **File:** `memx/team/sync_client.py` — `pull_taxonomy()` 已有接口签名，实现对接
-- **File:** `memx/team/taxonomy.py` — 新建，Taxonomy 加载/对齐逻辑
-- **File:** `memx/team/cache_storage.py` — 同步时触发 Taxonomy 拉取
+- **File:** `memorus/team/sync_client.py` — `pull_taxonomy()` 已有接口签名，实现对接
+- **File:** `memorus/team/taxonomy.py` — 新建，Taxonomy 加载/对齐逻辑
+- **File:** `memorus/team/cache_storage.py` — 同步时触发 Taxonomy 拉取
 - **File:** Reflector 扩展接口 — 标签对齐钩子
 
 ### Taxonomy Data Model

@@ -24,24 +24,24 @@ def main() -> None:
     # Populate with diverse metadata
     samples = [
         ("Use git rebase for cleanup", {
-            "memx_section": "tools", "memx_knowledge_type": "method",
-            "memx_decay_weight": 1.0, "memx_scope": "global",
+            "memorus_section": "tools", "memorus_knowledge_type": "method",
+            "memorus_decay_weight": 1.0, "memorus_scope": "global",
         }),
         ("pytest -x for fast debugging", {
-            "memx_section": "debugging", "memx_knowledge_type": "trick",
-            "memx_decay_weight": 0.8, "memx_scope": "global",
+            "memorus_section": "debugging", "memorus_knowledge_type": "trick",
+            "memorus_decay_weight": 0.8, "memorus_scope": "global",
         }),
         ("Always run ruff before commit", {
-            "memx_section": "tools", "memx_knowledge_type": "preference",
-            "memx_decay_weight": 0.9, "memx_scope": "global",
+            "memorus_section": "tools", "memorus_knowledge_type": "preference",
+            "memorus_decay_weight": 0.9, "memorus_scope": "global",
         }),
         ("Docker COPY order matters", {
-            "memx_section": "debugging", "memx_knowledge_type": "pitfall",
-            "memx_decay_weight": 0.5, "memx_scope": "project:web",
+            "memorus_section": "debugging", "memorus_knowledge_type": "pitfall",
+            "memorus_decay_weight": 0.5, "memorus_scope": "project:web",
         }),
         ("cargo clippy before build", {
-            "memx_section": "tools", "memx_knowledge_type": "method",
-            "memx_decay_weight": 0.7, "memx_scope": "project:rust",
+            "memorus_section": "tools", "memorus_knowledge_type": "method",
+            "memorus_decay_weight": 0.7, "memorus_scope": "project:rust",
         }),
     ]
 

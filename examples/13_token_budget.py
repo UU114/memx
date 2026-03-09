@@ -13,8 +13,8 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from memx.engines.generator.score_merger import ScoredBullet
-from memx.utils.token_counter import TokenBudgetTrimmer
+from memorus.engines.generator.score_merger import ScoredBullet
+from memorus.utils.token_counter import TokenBudgetTrimmer
 
 logger = logging.getLogger(__name__)
 

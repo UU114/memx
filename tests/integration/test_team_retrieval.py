@@ -15,8 +15,8 @@ from typing import Any
 
 import pytest
 
-from memx.team.git_storage import GitFallbackStorage
-from memx.team.merger import LayerBoostConfig, MultiPoolRetriever
+from memorus.team.git_storage import GitFallbackStorage
+from memorus.team.merger import LayerBoostConfig, MultiPoolRetriever
 
 
 # ---------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-"""Run all MemX demo scripts and report results."""
+"""Run all Memorus demo scripts and report results."""
 
 import importlib
 import logging
@@ -9,7 +9,7 @@ import traceback
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-# Enable DEBUG logging for all memx modules so demos expose internal state
+# Enable DEBUG logging for all memorus modules so demos expose internal state
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(levelname)-5s [%(name)s] %(message)s",
@@ -50,7 +50,7 @@ def main() -> None:
     total_start = time.perf_counter()
 
     print("=" * 60)
-    print("  MemX Demo Suite")
+    print("  Memorus Demo Suite")
     print("=" * 60)
 
     for name in DEMOS:

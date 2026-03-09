@@ -1,4 +1,4 @@
-"""Unit tests for memx.team.config — TeamConfig and sub-models."""
+"""Unit tests for memorus.team.config — TeamConfig and sub-models."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 import pytest
 
-from memx.team.config import (
+from memorus.team.config import (
     AutoNominateConfig,
     LayerBoostConfig,
     MandatoryOverride,
@@ -25,17 +25,17 @@ from memx.team.config import (
 
 
 class TestTeamConfigIndependence:
-    """Verify TeamConfig does not depend on MemXConfig."""
+    """Verify TeamConfig does not depend on MemorusConfig."""
 
-    def test_no_inheritance_from_memx_config(self) -> None:
-        from memx.core.config import MemXConfig
+    def test_no_inheritance_from_memorus_config(self) -> None:
+        from memorus.core.config import MemorusConfig
 
-        assert not issubclass(TeamConfig, MemXConfig)
+        assert not issubclass(TeamConfig, MemorusConfig)
 
-    def test_no_nesting_of_memx_config(self) -> None:
+    def test_no_nesting_of_memorus_config(self) -> None:
         tc = TeamConfig()
         for field_name, field_info in TeamConfig.model_fields.items():
-            assert "MemXConfig" not in str(field_info.annotation)
+            assert "MemorusConfig" not in str(field_info.annotation)
 
 
 # ---------------------------------------------------------------------------
@@ -151,33 +151,33 @@ class TestEnvOverrides:
     """Test loading config with environment variable overrides."""
 
     def test_env_enabled(self) -> None:
-        with patch.dict(os.environ, {"MEMX_TEAM_ENABLED": "true"}, clear=False):
+        with patch.dict(os.environ, {"MEMORUS_TEAM_ENABLED": "true"}, clear=False):
             tc = load_team_config()
         assert tc.enabled is True
 
     def test_env_enabled_false(self) -> None:
-        with patch.dict(os.environ, {"MEMX_TEAM_ENABLED": "false"}, clear=False):
+        with patch.dict(os.environ, {"MEMORUS_TEAM_ENABLED": "false"}, clear=False):
             tc = load_team_config()
         assert tc.enabled is False
 
     def test_env_server_url(self) -> None:
         with patch.dict(
             os.environ,
-            {"MEMX_TEAM_SERVER_URL": "https://my-server.io"},
+            {"MEMORUS_TEAM_SERVER_URL": "https://my-server.io"},
             clear=False,
         ):
             tc = load_team_config()
         assert tc.server_url == "https://my-server.io"
 
     def test_env_team_id(self) -> None:
-        with patch.dict(os.environ, {"MEMX_TEAM_TEAM_ID": "team-42"}, clear=False):
+        with patch.dict(os.environ, {"MEMORUS_TEAM_TEAM_ID": "team-42"}, clear=False):
             tc = load_team_config()
         assert tc.team_id == "team-42"
 
     def test_env_subscribed_tags(self) -> None:
         with patch.dict(
             os.environ,
-            {"MEMX_TEAM_SUBSCRIBED_TAGS": "python, rust, go"},
+            {"MEMORUS_TEAM_SUBSCRIBED_TAGS": "python, rust, go"},
             clear=False,
         ):
             tc = load_team_config()
@@ -185,21 +185,21 @@ class TestEnvOverrides:
 
     def test_env_cache_max_bullets(self) -> None:
         with patch.dict(
-            os.environ, {"MEMX_TEAM_CACHE_MAX_BULLETS": "500"}, clear=False
+            os.environ, {"MEMORUS_TEAM_CACHE_MAX_BULLETS": "500"}, clear=False
         ):
             tc = load_team_config()
         assert tc.cache_max_bullets == 500
 
     def test_env_cache_ttl_minutes(self) -> None:
         with patch.dict(
-            os.environ, {"MEMX_TEAM_CACHE_TTL_MINUTES": "120"}, clear=False
+            os.environ, {"MEMORUS_TEAM_CACHE_TTL_MINUTES": "120"}, clear=False
         ):
             tc = load_team_config()
         assert tc.cache_ttl_minutes == 120
 
     def test_env_invalid_int_keeps_default(self) -> None:
         with patch.dict(
-            os.environ, {"MEMX_TEAM_CACHE_MAX_BULLETS": "not_a_number"}, clear=False
+            os.environ, {"MEMORUS_TEAM_CACHE_MAX_BULLETS": "not_a_number"}, clear=False
         ):
             tc = load_team_config()
         assert tc.cache_max_bullets == 2000  # default preserved
@@ -239,7 +239,7 @@ class TestYamlLoading:
         config_file = tmp_path / "team_config.yaml"
         config_file.write_text(yaml_content, encoding="utf-8")
 
-        with patch.dict(os.environ, {"MEMX_TEAM_ENABLED": "true"}, clear=False):
+        with patch.dict(os.environ, {"MEMORUS_TEAM_ENABLED": "true"}, clear=False):
             tc = load_team_config(config_path=config_file)
         assert tc.enabled is True  # env overrides file
         assert tc.cache_max_bullets == 999  # from file

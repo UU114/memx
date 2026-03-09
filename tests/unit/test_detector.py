@@ -1,17 +1,17 @@
-"""Unit tests for memx.engines.reflector.detector — PatternDetector."""
+"""Unit tests for memorus.engines.reflector.detector — PatternDetector."""
 
 from __future__ import annotations
 
 from typing import Optional, Sequence
 
-from memx.core.engines.reflector.detector import PatternDetector
-from memx.core.engines.reflector.patterns import (
+from memorus.core.engines.reflector.detector import PatternDetector
+from memorus.core.engines.reflector.patterns import (
     ConfigChangeRule,
     NewToolRule,
     PatternRule,
     RepetitiveOpRule,
 )
-from memx.core.types import DetectedPattern, InteractionEvent
+from memorus.core.types import DetectedPattern, InteractionEvent
 
 
 # ── Helper factories ───────────────────────────────────────────────────

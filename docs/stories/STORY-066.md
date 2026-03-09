@@ -21,7 +21,7 @@ So that I can check status, sync, and nominate from terminal
 ## Description
 
 ### Background
-Team 功能需要用户可操作的 CLI 接口。本 Story 在现有 memx CLI 基础上添加 team 子命令组，提供状态查看、手动同步和提名管理功能。
+Team 功能需要用户可操作的 CLI 接口。本 Story 在现有 memorus CLI 基础上添加 team 子命令组，提供状态查看、手动同步和提名管理功能。
 
 ### Scope
 **In scope:**
@@ -83,7 +83,7 @@ Nominated successfully!
 ## Technical Notes
 
 ### Components
-- **File:** `memx/team/cli.py`
+- **File:** `memorus/team/cli.py`
 - **Framework:** Click（与现有 CLI 一致）
 
 ### CLI Structure

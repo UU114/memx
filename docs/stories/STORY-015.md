@@ -111,7 +111,7 @@ class IngestPipeline:
             return messages  # Use original
 ```
 
-### Changes to MemXMemory
+### Changes to MemorusMemory
 
 ```python
 class Memory:
@@ -149,7 +149,7 @@ class Memory:
 ## Definition of Done
 
 - [ ] IngestPipeline 修改完成
-- [ ] MemXMemory 修改完成（always_sanitize 支持）
+- [ ] MemorusMemory 修改完成（always_sanitize 支持）
 - [ ] 3 个测试场景全部通过
 - [ ] `ruff check` + `mypy` 通过
 - [ ] Code reviewed and approved

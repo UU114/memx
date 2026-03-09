@@ -12,7 +12,7 @@
 
 ## User Story
 
-As a MemX engine
+As a Memorus engine
 I want a factory to create, serialize, and deserialize Bullets
 So that Bullet creation is standardized across all modules
 
@@ -21,13 +21,13 @@ So that Bullet creation is standardized across all modules
 ## Description
 
 ### Background
-BulletFactory 是 Bullet 数据在 MemX 内部表示和 mem0 VectorStore payload 之间的桥梁。所有 ACE 引擎通过 Factory 创建标准化 Bullet；存储时通过 Factory 将 Bullet 字段转为 `memx_` 前缀的 dict 嵌入 mem0 payload；检索时通过 Factory 从 payload 解析还原 Bullet。向后兼容性至关重要——没有 `memx_` 字段的旧 mem0 payload 必须使用默认值而不报错。
+BulletFactory 是 Bullet 数据在 Memorus 内部表示和 mem0 VectorStore payload 之间的桥梁。所有 ACE 引擎通过 Factory 创建标准化 Bullet；存储时通过 Factory 将 Bullet 字段转为 `memorus_` 前缀的 dict 嵌入 mem0 payload；检索时通过 Factory 从 payload 解析还原 Bullet。向后兼容性至关重要——没有 `memorus_` 字段的旧 mem0 payload 必须使用默认值而不报错。
 
 ### Scope
 
 **In scope:**
 - `BulletFactory.create()` — 创建带默认元数据的 Bullet
-- `BulletFactory.to_mem0_metadata()` — Bullet → `memx_` 前缀 dict
+- `BulletFactory.to_mem0_metadata()` — Bullet → `memorus_` 前缀 dict
 - `BulletFactory.from_mem0_payload()` — mem0 payload → Bullet（优雅处理缺失字段）
 - 向后兼容测试
 - 单元测试
@@ -36,17 +36,17 @@ BulletFactory 是 Bullet 数据在 MemX 内部表示和 mem0 VectorStore payload
 - BulletMetadata 模型定义（STORY-001）
 - Curator 合并逻辑（STORY-018）
 
-### Key Design: `memx_` Prefix Convention
+### Key Design: `memorus_` Prefix Convention
 
 ```python
 # BulletMetadata field → mem0 payload key mapping
 {
-    "section": "general"           → {"memx_section": "general"}
-    "knowledge_type": "method"     → {"memx_knowledge_type": "method"}
-    "instructivity_score": 75.0    → {"memx_instructivity_score": 75.0}
-    "recall_count": 3              → {"memx_recall_count": 3}
-    "decay_weight": 0.85           → {"memx_decay_weight": 0.85}
-    # ... all fields get memx_ prefix
+    "section": "general"           → {"memorus_section": "general"}
+    "knowledge_type": "method"     → {"memorus_knowledge_type": "method"}
+    "instructivity_score": 75.0    → {"memorus_instructivity_score": 75.0}
+    "recall_count": 3              → {"memorus_recall_count": 3}
+    "decay_weight": 0.85           → {"memorus_decay_weight": 0.85}
+    # ... all fields get memorus_ prefix
 }
 ```
 
@@ -55,9 +55,9 @@ BulletFactory 是 Bullet 数据在 MemX 内部表示和 mem0 VectorStore payload
 ## Acceptance Criteria
 
 - [ ] `BulletFactory.create(content, **kwargs)` 创建 dict 含 `content` 和 `BulletMetadata`
-- [ ] `BulletFactory.to_mem0_metadata(bullet_meta)` 将所有 BulletMetadata 字段转为 `memx_` 前缀 dict
-- [ ] `BulletFactory.from_mem0_payload(payload)` 从 mem0 payload 的 `metadata` 字典中解析 `memx_*` 字段
-- [ ] 旧 payload（无 `memx_` 字段）→ 返回带默认值的 BulletMetadata，不报错
+- [ ] `BulletFactory.to_mem0_metadata(bullet_meta)` 将所有 BulletMetadata 字段转为 `memorus_` 前缀 dict
+- [ ] `BulletFactory.from_mem0_payload(payload)` 从 mem0 payload 的 `metadata` 字典中解析 `memorus_*` 字段
+- [ ] 旧 payload（无 `memorus_` 字段）→ 返回带默认值的 BulletMetadata，不报错
 - [ ] 部分字段存在的 payload → 已有字段正确解析，缺失字段使用默认值
 - [ ] datetime 字段正确序列化/反序列化（ISO 格式字符串 ↔ datetime 对象）
 - [ ] list 字段（related_tools, tags 等）序列化为 JSON 字符串存储
@@ -68,14 +68,14 @@ BulletFactory 是 Bullet 数据在 MemX 内部表示和 mem0 VectorStore payload
 ## Technical Notes
 
 ### File Location
-`memx/utils/bullet_factory.py`
+`memorus/utils/bullet_factory.py`
 
 ### Implementation Sketch
 
 ```python
-from memx.types import BulletMetadata
+from memorus.types import BulletMetadata
 
-MEMX_PREFIX = "memx_"
+MEMORUS_PREFIX = "memorus_"
 
 class BulletFactory:
     @staticmethod
@@ -86,9 +86,9 @@ class BulletFactory:
 
     @staticmethod
     def to_mem0_metadata(bullet_meta: BulletMetadata) -> dict:
-        """Convert BulletMetadata to memx_-prefixed dict for mem0 payload."""
+        """Convert BulletMetadata to memorus_-prefixed dict for mem0 payload."""
         data = bullet_meta.model_dump(mode="json")
-        return {f"{MEMX_PREFIX}{k}": v for k, v in data.items()}
+        return {f"{MEMORUS_PREFIX}{k}": v for k, v in data.items()}
 
     @staticmethod
     def from_mem0_payload(payload: dict) -> BulletMetadata:
@@ -96,8 +96,8 @@ class BulletFactory:
         metadata = payload.get("metadata", {})
         bullet_fields = {}
         for key, value in metadata.items():
-            if key.startswith(MEMX_PREFIX):
-                field_name = key[len(MEMX_PREFIX):]
+            if key.startswith(MEMORUS_PREFIX):
+                field_name = key[len(MEMORUS_PREFIX):]
                 bullet_fields[field_name] = value
         return BulletMetadata.model_validate(bullet_fields)
 
@@ -111,9 +111,9 @@ class BulletFactory:
 
 ### Edge Cases
 - payload 为空 dict `{}` → 返回全默认 BulletMetadata
-- payload 含非 `memx_` 前缀字段（mem0 自有字段）→ 忽略
-- `memx_instructivity_score` 值为字符串 "75" → Pydantic coerce 为 float
-- `memx_related_tools` 存储为 JSON 字符串 → 需要判断是 list 还是 string 后解析
+- payload 含非 `memorus_` 前缀字段（mem0 自有字段）→ 忽略
+- `memorus_instructivity_score` 值为字符串 "75" → Pydantic coerce 为 float
+- `memorus_related_tools` 存储为 JSON 字符串 → 需要判断是 list 还是 string 后解析
 
 ---
 
@@ -134,7 +134,7 @@ class BulletFactory:
 
 ## Definition of Done
 
-- [ ] Code implemented in `memx/utils/bullet_factory.py`
+- [ ] Code implemented in `memorus/utils/bullet_factory.py`
 - [ ] Unit tests in `tests/unit/test_bullet_factory.py`
 - [ ] All tests passing
 - [ ] `ruff check` 通过

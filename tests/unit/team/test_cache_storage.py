@@ -1,4 +1,4 @@
-"""Tests for memx.team.cache_storage — TeamCacheStorage."""
+"""Tests for memorus.team.cache_storage — TeamCacheStorage."""
 
 from __future__ import annotations
 
@@ -10,9 +10,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from memx.team.cache_storage import TeamCacheStorage, _sanitize_team_id
-from memx.team.config import TeamConfig
-from memx.team.types import TeamBullet
+from memorus.team.cache_storage import TeamCacheStorage, _sanitize_team_id
+from memorus.team.config import TeamConfig
+from memorus.team.types import TeamBullet
 
 
 # ---------------------------------------------------------------------------
@@ -72,7 +72,7 @@ class TestStorageBackendProtocol:
 
     def test_isinstance_check(self, storage: TeamCacheStorage) -> None:
         """TeamCacheStorage must be runtime-checkable as StorageBackend."""
-        from memx.team.merger import StorageBackend
+        from memorus.team.merger import StorageBackend
 
         assert isinstance(storage, StorageBackend)
 

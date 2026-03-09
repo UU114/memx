@@ -16,12 +16,12 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
-from memx.config import RetrievalConfig
-from memx.engines.generator.engine import BulletForSearch, GeneratorEngine
-from memx.engines.generator.metadata_matcher import MetadataInfo
-from memx.engines.generator.vector_searcher import VectorSearcher
-from memx.pipeline.retrieval import RetrievalPipeline, SearchResult
-from memx.utils.token_counter import TokenBudgetTrimmer
+from memorus.config import RetrievalConfig
+from memorus.engines.generator.engine import BulletForSearch, GeneratorEngine
+from memorus.engines.generator.metadata_matcher import MetadataInfo
+from memorus.engines.generator.vector_searcher import VectorSearcher
+from memorus.pipeline.retrieval import RetrievalPipeline, SearchResult
+from memorus.utils.token_counter import TokenBudgetTrimmer
 
 logger = logging.getLogger(__name__)
 

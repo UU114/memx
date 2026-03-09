@@ -23,15 +23,15 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from datetime import datetime, timezone
 
 from examples._mock_backend import create_mock_memory
-from memx.config import ReflectorConfig, RetrievalConfig
-from memx.engines.generator.engine import BulletForSearch, GeneratorEngine
-from memx.engines.generator.metadata_matcher import MetadataInfo
-from memx.engines.reflector.engine import ReflectorEngine
-from memx.integration.cli_hooks import CLIPreInferenceHook
-from memx.privacy.sanitizer import PrivacySanitizer
-from memx.types import BulletMetadata, InteractionEvent
-from memx.utils.bullet_factory import BulletFactory
-from memx.utils.token_counter import TokenBudgetTrimmer
+from memorus.config import ReflectorConfig, RetrievalConfig
+from memorus.engines.generator.engine import BulletForSearch, GeneratorEngine
+from memorus.engines.generator.metadata_matcher import MetadataInfo
+from memorus.engines.reflector.engine import ReflectorEngine
+from memorus.integration.cli_hooks import CLIPreInferenceHook
+from memorus.privacy.sanitizer import PrivacySanitizer
+from memorus.types import BulletMetadata, InteractionEvent
+from memorus.utils.bullet_factory import BulletFactory
+from memorus.utils.token_counter import TokenBudgetTrimmer
 
 logger = logging.getLogger(__name__)
 

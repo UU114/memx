@@ -18,8 +18,8 @@ from typing import Any
 
 import pytest
 
-from memx.team.git_storage import GitFallbackStorage
-from memx.team.merger import LayerBoostConfig, MultiPoolRetriever
+from memorus.team.git_storage import GitFallbackStorage
+from memorus.team.merger import LayerBoostConfig, MultiPoolRetriever
 
 
 # ---------------------------------------------------------------------------
@@ -186,9 +186,9 @@ class TestTeamCacheSearchPerformance:
     @pytest.fixture()
     def populated_cache(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> "TeamCacheStorage":
         """Create a TeamCacheStorage with ~500 bullets."""
-        from memx.team.cache_storage import TeamCacheStorage
-        from memx.team.config import TeamConfig
-        from memx.team.types import TeamBullet
+        from memorus.team.cache_storage import TeamCacheStorage
+        from memorus.team.config import TeamConfig
+        from memorus.team.types import TeamBullet
 
         monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path))
 

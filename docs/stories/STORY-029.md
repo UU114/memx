@@ -69,7 +69,7 @@ class TokenBudgetTrimmer:
 ```
 
 ### Components
-- `memx/utils/token_counter.py`
+- `memorus/utils/token_counter.py`
 
 ### Implementation Notes
 - 中文字符 token 比更高（约 1.5 chars/token），可做简单检测
@@ -89,7 +89,7 @@ class TokenBudgetTrimmer:
 
 ## Definition of Done
 
-- [ ] `memx/utils/token_counter.py` 实现 TokenBudgetTrimmer
+- [ ] `memorus/utils/token_counter.py` 实现 TokenBudgetTrimmer
 - [ ] 预算裁剪测试
 - [ ] 边界条件测试
 - [ ] mypy --strict 通过

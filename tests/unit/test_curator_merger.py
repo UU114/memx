@@ -1,4 +1,4 @@
-"""Unit tests for memx.engines.curator.merger — MergeStrategy implementations."""
+"""Unit tests for memorus.engines.curator.merger — MergeStrategy implementations."""
 
 from __future__ import annotations
 
@@ -7,14 +7,14 @@ from datetime import datetime
 
 import pytest
 
-from memx.core.engines.curator.engine import ExistingBullet
-from memx.core.engines.curator.merger import (
+from memorus.core.engines.curator.engine import ExistingBullet
+from memorus.core.engines.curator.merger import (
     KeepBestStrategy,
     MergeContentStrategy,
     MergeResult,
     get_merge_strategy,
 )
-from memx.core.types import CandidateBullet
+from memorus.core.types import CandidateBullet
 
 
 # ── Helper factories ─────────────────────────────────────────────────
@@ -394,14 +394,14 @@ class TestGetMergeStrategy:
 
 class TestStrategyFromConfig:
     def test_config_default_is_keep_best(self) -> None:
-        from memx.core.config import CuratorConfig
+        from memorus.core.config import CuratorConfig
 
         config = CuratorConfig()
         strategy = get_merge_strategy(config.merge_strategy)
         assert isinstance(strategy, KeepBestStrategy)
 
     def test_config_merge_content(self) -> None:
-        from memx.core.config import CuratorConfig
+        from memorus.core.config import CuratorConfig
 
         config = CuratorConfig(merge_strategy="merge_content")
         strategy = get_merge_strategy(config.merge_strategy)

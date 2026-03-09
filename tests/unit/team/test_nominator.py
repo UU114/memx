@@ -1,4 +1,4 @@
-"""Unit tests for memx.team.nominator — automatic nomination pipeline."""
+"""Unit tests for memorus.team.nominator — automatic nomination pipeline."""
 
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from memx.team.config import AutoNominateConfig
-from memx.team.nominator import (
+from memorus.team.config import AutoNominateConfig
+from memorus.team.nominator import (
     NominationResult,
     NominationSummary,
     Nominator,

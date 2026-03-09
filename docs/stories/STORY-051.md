@@ -12,7 +12,7 @@
 
 ## User Story
 
-As a MemX developer
+As a Memorus developer
 I want Bullet to have schema_version and incompatible_tags fields
 So that Team conflict detection and schema evolution are supported
 
@@ -29,7 +29,7 @@ So that Team conflict detection and schema evolution are supported
 **In scope:**
 - `BulletMetadata` 新增 `schema_version` 和 `incompatible_tags` 字段
 - BulletFactory 序列化/反序列化更新
-- mem0 payload 中使用 `memx_` 前缀
+- mem0 payload 中使用 `memorus_` 前缀
 - 现有测试通过
 
 **Out of scope:**
@@ -48,7 +48,7 @@ So that Team conflict detection and schema evolution are supported
 - [ ] `BulletMetadata` 新增 `schema_version: int = 1`
 - [ ] `BulletMetadata` 新增 `incompatible_tags: list[str] = []`
 - [ ] 两个字段有默认值，旧数据反序列化完全向后兼容
-- [ ] mem0 payload 中使用 `memx_schema_version` 和 `memx_incompatible_tags` 前缀
+- [ ] mem0 payload 中使用 `memorus_schema_version` 和 `memorus_incompatible_tags` 前缀
 - [ ] BulletFactory 正确处理新字段的序列化/反序列化
 - [ ] 全部现有测试通过，无需修改
 - [ ] mypy --strict 通过
@@ -58,13 +58,13 @@ So that Team conflict detection and schema evolution are supported
 ## Technical Notes
 
 ### Components
-- `memx/core/types.py`（重构后路径）— BulletMetadata 扩展
-- `memx/core/utils/bullet_factory.py` — 序列化/反序列化更新
+- `memorus/core/types.py`（重构后路径）— BulletMetadata 扩展
+- `memorus/core/utils/bullet_factory.py` — 序列化/反序列化更新
 
 ### Implementation
 
 ```python
-# In BulletMetadata (memx/core/types.py)
+# In BulletMetadata (memorus/core/types.py)
 class BulletMetadata(BaseModel):
     # ... existing fields ...
     schema_version: int = 1          # NEW
@@ -75,14 +75,14 @@ class BulletMetadata(BaseModel):
 # In BulletFactory — payload serialization
 PAYLOAD_MAPPING = {
     # ... existing mappings ...
-    "schema_version": "memx_schema_version",
-    "incompatible_tags": "memx_incompatible_tags",
+    "schema_version": "memorus_schema_version",
+    "incompatible_tags": "memorus_incompatible_tags",
 }
 ```
 
 ### Edge Cases
-- 旧 payload 无 `memx_schema_version` → 反序列化时默认为 1
-- 旧 payload 无 `memx_incompatible_tags` → 反序列化时默认为 []
+- 旧 payload 无 `memorus_schema_version` → 反序列化时默认为 1
+- 旧 payload 无 `memorus_incompatible_tags` → 反序列化时默认为 []
 - `incompatible_tags` 中包含不存在的标签 → 正常存储，由上层消费者处理
 
 ---

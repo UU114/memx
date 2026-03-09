@@ -12,7 +12,7 @@
 
 ## User Story
 
-As a MemX system
+As a Memorus system
 I want a complete Generator engine with automatic degradation
 So that search always works even without Embedding
 
@@ -75,7 +75,7 @@ class GeneratorEngine:
 ```
 
 ### Components
-- `memx/engines/generator/engine.py`
+- `memorus/engines/generator/engine.py`
 
 ### Architecture
 ```
@@ -114,7 +114,7 @@ except Exception as e:
 
 ## Definition of Done
 
-- [ ] `memx/engines/generator/engine.py` 实现 GeneratorEngine
+- [ ] `memorus/engines/generator/engine.py` 实现 GeneratorEngine
 - [ ] full 模式 + degraded 模式测试
 - [ ] Matcher 故障隔离测试
 - [ ] mypy --strict 通过

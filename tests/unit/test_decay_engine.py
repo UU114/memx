@@ -1,4 +1,4 @@
-"""Unit tests for memx.engines.decay — formulas, DecayEngine, sweep, reinforce."""
+"""Unit tests for memorus.engines.decay — formulas, DecayEngine, sweep, reinforce."""
 
 from __future__ import annotations
 
@@ -7,14 +7,14 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from memx.core.config import DecayConfig
-from memx.core.engines.decay.engine import (
+from memorus.core.config import DecayConfig
+from memorus.core.engines.decay.engine import (
     BulletDecayInfo,
     DecayEngine,
     DecayResult,
     DecaySweepResult,
 )
-from memx.core.engines.decay.formulas import boosted_weight, exponential_decay
+from memorus.core.engines.decay.formulas import boosted_weight, exponential_decay
 
 # ---------------------------------------------------------------------------
 # Helper: fixed reference time

@@ -61,7 +61,7 @@ STORY-054 的 `GitFallbackStorage` 初始实现仅支持关键词检索。为了
 ## Technical Notes
 
 ### Components
-- `memx/team/git_storage.py` — GitFallbackStorage 向量缓存扩展
+- `memorus/team/git_storage.py` — GitFallbackStorage 向量缓存扩展
 
 ### Vector Cache Format
 ```python
@@ -84,7 +84,7 @@ class GitFallbackStorage:
     def _build_vector_cache(self):
         """Generate vector embeddings for all loaded bullets."""
         try:
-            from memx.core.engines.onnx_embedder import ONNXEmbedder
+            from memorus.core.engines.onnx_embedder import ONNXEmbedder
             embedder = ONNXEmbedder()
         except (ImportError, Exception):
             logger.info("ONNX embedder not available, vector search disabled")

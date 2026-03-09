@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from memx.team.git_storage import GitFallbackStorage, TeamBulletRecord
+from memorus.team.git_storage import GitFallbackStorage, TeamBulletRecord
 
 
 # ---------------------------------------------------------------------------

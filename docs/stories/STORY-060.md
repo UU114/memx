@@ -61,7 +61,7 @@ AceSyncClient 是 Federation Mode 的网络层，负责与 ACE Sync Server 通�
 ## Technical Notes
 
 ### Components
-- **File:** `memx/team/sync_client.py`
+- **File:** `memorus/team/sync_client.py`
 - **HTTP Client:** httpx.AsyncClient
 - **Auth:** Header-based (API-Key or Bearer Token)
 

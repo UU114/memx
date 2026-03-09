@@ -23,15 +23,15 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from memx.core.config import DaemonConfig, MemXConfig
-from memx.core.daemon.client import DaemonClient
-from memx.core.daemon.fallback import (
+from memorus.core.config import DaemonConfig, MemorusConfig
+from memorus.core.daemon.client import DaemonClient
+from memorus.core.daemon.fallback import (
     DEFAULT_RECOVERY_COOLDOWN,
     DEFAULT_RECOVERY_INTERVAL,
     DaemonFallbackManager,
 )
-from memx.core.exceptions import DaemonUnavailableError
-from memx.core.memory import Memory
+from memorus.core.exceptions import DaemonUnavailableError
+from memorus.core.memory import Memory
 
 
 # ---------------------------------------------------------------------------
@@ -67,7 +67,7 @@ def _make_memory_with_daemon(
 ) -> Memory:
     """Create a Memory instance with daemon fallback manager wired up."""
     m = Memory.__new__(Memory)
-    m._config = MemXConfig(daemon=DaemonConfig(enabled=True))
+    m._config = MemorusConfig(daemon=DaemonConfig(enabled=True))
     m._mem0 = MagicMock()
     m._mem0_init_error = None
     m._mem0.add.return_value = {"results": [{"id": "1", "memory": "direct-add"}]}
@@ -136,7 +136,7 @@ class TestInitialAvailability:
 
     def test_degradation_warning_logged_on_unavailable(self, caplog: Any) -> None:
         mgr = _make_fallback(ping_result=False)
-        with caplog.at_level(logging.WARNING, logger="memx.core.daemon.fallback"):
+        with caplog.at_level(logging.WARNING, logger="memorus.core.daemon.fallback"):
             mgr.check_initial_availability()
         assert any(
             "Daemon unavailable, falling back to direct mode" in r.message
@@ -145,7 +145,7 @@ class TestInitialAvailability:
 
     def test_no_warning_when_available(self, caplog: Any) -> None:
         mgr = _make_fallback(ping_result=True)
-        with caplog.at_level(logging.WARNING, logger="memx.core.daemon.fallback"):
+        with caplog.at_level(logging.WARNING, logger="memorus.core.daemon.fallback"):
             mgr.check_initial_availability()
         assert not any(
             "Daemon unavailable" in r.message for r in caplog.records
@@ -264,7 +264,7 @@ class TestDegradationLogging:
         mgr._client.recall = AsyncMock(
             side_effect=DaemonUnavailableError("gone")
         )
-        with caplog.at_level(logging.WARNING, logger="memx.core.daemon.fallback"):
+        with caplog.at_level(logging.WARNING, logger="memorus.core.daemon.fallback"):
             await mgr.try_recall("q")
         warnings = [
             r for r in caplog.records
@@ -278,7 +278,7 @@ class TestDegradationLogging:
         mgr._client.recall = AsyncMock(
             side_effect=DaemonUnavailableError("gone")
         )
-        with caplog.at_level(logging.WARNING, logger="memx.core.daemon.fallback"):
+        with caplog.at_level(logging.WARNING, logger="memorus.core.daemon.fallback"):
             await mgr.try_recall("q1")
             # Daemon is now marked unavailable; next calls won't even try IPC
             # But let's force another degradation scenario
@@ -322,7 +322,7 @@ class TestRecovery:
         mgr = _make_fallback(ping_result=True)
         mgr._available = False
         mgr._last_failure_time = 0.0
-        with caplog.at_level(logging.INFO, logger="memx.core.daemon.fallback"):
+        with caplog.at_level(logging.INFO, logger="memorus.core.daemon.fallback"):
             await mgr.check_recovery()
         info_msgs = [
             r for r in caplog.records
@@ -451,7 +451,7 @@ class TestDegradationRecoveryCycle:
         mgr._client.recall = AsyncMock(
             side_effect=DaemonUnavailableError("crash")
         )
-        with caplog.at_level(logging.WARNING, logger="memx.core.daemon.fallback"):
+        with caplog.at_level(logging.WARNING, logger="memorus.core.daemon.fallback"):
             result = await mgr.try_recall("q")
         assert result is None
         assert mgr.is_available is False
@@ -469,7 +469,7 @@ class TestDegradationRecoveryCycle:
         )
 
         # Need enough ticks to trigger recovery (interval=3, we already have 2 ticks)
-        with caplog.at_level(logging.INFO, logger="memx.core.daemon.fallback"):
+        with caplog.at_level(logging.INFO, logger="memorus.core.daemon.fallback"):
             result3 = await mgr.try_recall("q3")
 
         # After tick 3, recovery check triggered => daemon back
@@ -568,7 +568,7 @@ class TestMemoryDaemonDisabled:
 
     def test_no_fallback_manager_when_disabled(self) -> None:
         m = Memory.__new__(Memory)
-        m._config = MemXConfig(daemon=DaemonConfig(enabled=False))
+        m._config = MemorusConfig(daemon=DaemonConfig(enabled=False))
         m._mem0 = MagicMock()
         m._mem0_init_error = None
         m._mem0.search.return_value = {"results": []}
@@ -581,7 +581,7 @@ class TestMemoryDaemonDisabled:
 
     def test_search_uses_mem0_when_disabled(self) -> None:
         m = Memory.__new__(Memory)
-        m._config = MemXConfig(daemon=DaemonConfig(enabled=False))
+        m._config = MemorusConfig(daemon=DaemonConfig(enabled=False))
         m._mem0 = MagicMock()
         m._mem0_init_error = None
         m._mem0.search.return_value = {"results": []}
@@ -594,7 +594,7 @@ class TestMemoryDaemonDisabled:
 
     def test_add_uses_mem0_when_disabled(self) -> None:
         m = Memory.__new__(Memory)
-        m._config = MemXConfig(daemon=DaemonConfig(enabled=False))
+        m._config = MemorusConfig(daemon=DaemonConfig(enabled=False))
         m._mem0 = MagicMock()
         m._mem0_init_error = None
         m._mem0.add.return_value = {"results": []}
@@ -624,7 +624,7 @@ class TestDaemonAvailableProperty:
 
     def test_returns_false_when_no_fallback(self) -> None:
         m = Memory.__new__(Memory)
-        m._config = MemXConfig()
+        m._config = MemorusConfig()
         m._daemon_fallback = None
         assert m.daemon_available is False
 
@@ -670,7 +670,7 @@ class TestLogSpamPrevention:
 
     async def test_repeated_degradation_only_logs_once(self, caplog: Any) -> None:
         mgr = _make_fallback(ping_result=False, recovery_cooldown=9999.0)
-        with caplog.at_level(logging.WARNING, logger="memx.core.daemon.fallback"):
+        with caplog.at_level(logging.WARNING, logger="memorus.core.daemon.fallback"):
             # First degradation
             mgr._mark_unavailable()
             # Second degradation (simulate another failure after forced available)
@@ -692,7 +692,7 @@ class TestLogSpamPrevention:
         mgr._degraded_logged = True
         mgr._last_failure_time = 0.0
 
-        with caplog.at_level(logging.DEBUG, logger="memx.core.daemon.fallback"):
+        with caplog.at_level(logging.DEBUG, logger="memorus.core.daemon.fallback"):
             # Recovery
             await mgr.check_recovery()
             assert mgr.is_available is True
@@ -763,11 +763,11 @@ class TestEdgeCases:
     def test_memory_init_daemon_fallback_exception_handled(self) -> None:
         """If DaemonFallbackManager init raises, Memory should still work."""
         m = Memory.__new__(Memory)
-        m._config = MemXConfig(daemon=DaemonConfig(enabled=True))
+        m._config = MemorusConfig(daemon=DaemonConfig(enabled=True))
         m._daemon_fallback = None
 
         with patch(
-            "memx.core.daemon.fallback.DaemonFallbackManager",
+            "memorus.core.daemon.fallback.DaemonFallbackManager",
             side_effect=ImportError("no module"),
         ):
             # Should not raise -- just logs warning
@@ -799,14 +799,14 @@ class TestMemoryInitDaemonFallback:
 
     def test_skips_when_daemon_disabled(self) -> None:
         m = Memory.__new__(Memory)
-        m._config = MemXConfig(daemon=DaemonConfig(enabled=False))
+        m._config = MemorusConfig(daemon=DaemonConfig(enabled=False))
         m._daemon_fallback = None
         m._init_daemon_fallback()
         assert m._daemon_fallback is None
 
     def test_creates_fallback_when_enabled(self) -> None:
         m = Memory.__new__(Memory)
-        m._config = MemXConfig(daemon=DaemonConfig(enabled=True))
+        m._config = MemorusConfig(daemon=DaemonConfig(enabled=True))
         m._daemon_fallback = None
 
         # Mock the DaemonClient.ping to avoid real IPC
@@ -820,12 +820,12 @@ class TestMemoryInitDaemonFallback:
 
     def test_handles_init_failure_gracefully(self) -> None:
         m = Memory.__new__(Memory)
-        m._config = MemXConfig(daemon=DaemonConfig(enabled=True))
+        m._config = MemorusConfig(daemon=DaemonConfig(enabled=True))
         m._daemon_fallback = None
 
         # Patch the class itself to simulate import/init failure
         with patch(
-            "memx.core.daemon.fallback.DaemonFallbackManager",
+            "memorus.core.daemon.fallback.DaemonFallbackManager",
             side_effect=Exception("init failed"),
         ):
             m._init_daemon_fallback()

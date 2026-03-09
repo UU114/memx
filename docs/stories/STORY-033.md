@@ -21,7 +21,7 @@ So that the AI remembers past interactions and provides contextual responses
 ## Description
 
 ### Background
-PreInferenceHook 是 MemX 最核心的集成点——在用户输入发送给 LLM 之前，自动从 Playbook 中检索相关记忆并注入为上下文。首要集成目标是 Claude Code 的 `UserPromptSubmit` Hook。本 Story 实现 CLI 场景下的具体 Hook。
+PreInferenceHook 是 Memorus 最核心的集成点——在用户输入发送给 LLM 之前，自动从 Playbook 中检索相关记忆并注入为上下文。首要集成目标是 Claude Code 的 `UserPromptSubmit` Hook。本 Story 实现 CLI 场景下的具体 Hook。
 
 ### Scope
 **In scope:**
@@ -43,9 +43,9 @@ PreInferenceHook 是 MemX 最核心的集成点——在用户输入发送给 LL
 - [ ] `CLIPreInferenceHook` 继承 `PreInferenceHook`
 - [ ] `on_user_input(input)` 调用 `memory.search(input)` 获取记忆
 - [ ] 搜索结果为空时返回 `ContextInjection(memories=[], rendered="")`
-- [ ] XML 模板格式输出：`<memx-context><memory id="..." score="...">content</memory></memx-context>`
-- [ ] Markdown 模板格式输出：`## MemX Context\n- **[score]** content`
-- [ ] Plain 模板格式输出：`[MemX] content1\n[MemX] content2`
+- [ ] XML 模板格式输出：`<memorus-context><memory id="..." score="...">content</memory></memorus-context>`
+- [ ] Markdown 模板格式输出：`## Memorus Context\n- **[score]** content`
+- [ ] Plain 模板格式输出：`[Memorus] content1\n[Memorus] content2`
 - [ ] 格式由 `IntegrationConfig.context_template` 配置（默认 "xml"）
 - [ ] Hook 内异常被捕获，返回 None 并记录 WARNING
 
@@ -54,7 +54,7 @@ PreInferenceHook 是 MemX 最核心的集成点——在用户输入发送给 LL
 ## Technical Notes
 
 ### Components
-- `memx/integration/cli_hooks.py` — CLIPreInferenceHook
+- `memorus/integration/cli_hooks.py` — CLIPreInferenceHook
 
 ### API Design
 
@@ -90,27 +90,27 @@ class CLIPreInferenceHook(PreInferenceHook):
 
 **XML (default):**
 ```xml
-<memx-context>
+<memorus-context>
   <memory id="abc123" score="0.85" type="preference">
     User prefers dark mode in all applications.
   </memory>
   <memory id="def456" score="0.72" type="tool_pattern">
     When using pytest, always run with -v flag.
   </memory>
-</memx-context>
+</memorus-context>
 ```
 
 **Markdown:**
 ```markdown
-## MemX Context
+## Memorus Context
 - **[0.85]** User prefers dark mode in all applications.
 - **[0.72]** When using pytest, always run with -v flag.
 ```
 
 ### Dependencies on Existing Code
-- `memx/integration/hooks.py:PreInferenceHook` — 抽象基类（STORY-032）
-- `memx/memory.py:Memory.search()` — 检索接口
-- `memx/config.py:IntegrationConfig` — context_template 字段
+- `memorus/integration/hooks.py:PreInferenceHook` — 抽象基类（STORY-032）
+- `memorus/memory.py:Memory.search()` — 检索接口
+- `memorus/config.py:IntegrationConfig` — context_template 字段
 
 ### Edge Cases
 - 用户输入为空字符串 → 跳过搜索，返回空 ContextInjection
@@ -133,7 +133,7 @@ class CLIPreInferenceHook(PreInferenceHook):
 
 ## Definition of Done
 
-- [ ] `memx/integration/cli_hooks.py` 实现 CLIPreInferenceHook
+- [ ] `memorus/integration/cli_hooks.py` 实现 CLIPreInferenceHook
 - [ ] 三种模板格式单元测试
 - [ ] 空结果、异常路径测试
 - [ ] mypy --strict 通过

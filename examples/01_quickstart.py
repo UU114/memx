@@ -1,4 +1,4 @@
-"""Demo 01: Quickstart — mem0-compatible CRUD operations via MemX."""
+"""Demo 01: Quickstart — mem0-compatible CRUD operations via Memorus."""
 
 import sys
 import os
@@ -10,13 +10,13 @@ from examples._mock_backend import create_mock_memory
 
 def main() -> None:
     # --- from_config factory ---
-    from memx.memory import Memory
+    from memorus.memory import Memory
 
     m = Memory.__new__(Memory)
-    from memx.config import MemXConfig
+    from memorus.config import MemorusConfig
 
-    m._config = MemXConfig.from_dict({})
-    print("[1/7] from_config: MemXConfig created OK")
+    m._config = MemorusConfig.from_dict({})
+    print("[1/7] from_config: MemorusConfig created OK")
 
     # --- Use mock memory for CRUD ---
     mem = create_mock_memory(ace_enabled=False)

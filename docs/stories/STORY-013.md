@@ -83,19 +83,19 @@ Return CandidateBullet[]
 ## Technical Notes
 
 ### File Location
-`memx/engines/reflector/engine.py`
+`memorus/engines/reflector/engine.py`
 
 ### Implementation Sketch
 
 ```python
 import logging
 from typing import Optional
-from memx.types import InteractionEvent, CandidateBullet, DetectedPattern
-from memx.config import ReflectorConfig
-from memx.engines.reflector.detector import PatternDetector
-from memx.engines.reflector.scorer import KnowledgeScorer
-from memx.privacy.sanitizer import PrivacySanitizer
-from memx.engines.reflector.distiller import BulletDistiller
+from memorus.types import InteractionEvent, CandidateBullet, DetectedPattern
+from memorus.config import ReflectorConfig
+from memorus.engines.reflector.detector import PatternDetector
+from memorus.engines.reflector.scorer import KnowledgeScorer
+from memorus.privacy.sanitizer import PrivacySanitizer
+from memorus.engines.reflector.distiller import BulletDistiller
 
 logger = logging.getLogger(__name__)
 
@@ -207,7 +207,7 @@ class ReflectorEngine:
 
 ## Definition of Done
 
-- [ ] Code in `memx/engines/reflector/engine.py`
+- [ ] Code in `memorus/engines/reflector/engine.py`
 - [ ] Integration tests in `tests/unit/test_reflector.py` (engine section)
 - [ ] 完整 4-Stage 流水线测试
 - [ ] 每个 Stage 独立故障降级测试（4 个）

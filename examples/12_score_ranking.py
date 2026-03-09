@@ -13,8 +13,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from datetime import datetime, timedelta, timezone
 
-from memx.config import RetrievalConfig
-from memx.engines.generator.score_merger import BulletInfo, ScoreMerger
+from memorus.config import RetrievalConfig
+from memorus.engines.generator.score_merger import BulletInfo, ScoreMerger
 
 logger = logging.getLogger(__name__)
 

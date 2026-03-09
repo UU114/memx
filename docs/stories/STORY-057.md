@@ -59,7 +59,7 @@ So that redundant entries don't pollute search results
 ## Technical Notes
 
 ### Components
-- `memx/team/git_storage.py` — GitFallbackStorage 去重扩展
+- `memorus/team/git_storage.py` — GitFallbackStorage 去重扩展
 
 ### Cache Format
 ```python

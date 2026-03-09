@@ -15,9 +15,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from datetime import datetime, timedelta, timezone
 
-from memx.config import DecayConfig
-from memx.engines.decay.engine import DecayEngine
-from memx.pipeline.retrieval import RecallReinforcer
+from memorus.config import DecayConfig
+from memorus.engines.decay.engine import DecayEngine
+from memorus.pipeline.retrieval import RecallReinforcer
 
 logger = logging.getLogger(__name__)
 

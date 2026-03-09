@@ -5,10 +5,10 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from memx.config import CuratorConfig
-from memx.engines.curator.engine import CuratorEngine, ExistingBullet
-from memx.memory import _validate_scope
-from memx.types import BulletSection, CandidateBullet, KnowledgeType
+from memorus.config import CuratorConfig
+from memorus.engines.curator.engine import CuratorEngine, ExistingBullet
+from memorus.memory import _validate_scope
+from memorus.types import BulletSection, CandidateBullet, KnowledgeType
 
 
 def main() -> None:

@@ -23,10 +23,10 @@ def main() -> None:
             content,
             user_id="demo_user",
             metadata={
-                "memx_section": ["debugging", "tools", "workflow"][i],
-                "memx_knowledge_type": ["method", "trick", "preference"][i],
-                "memx_instructivity_score": [70.0, 65.0, 80.0][i],
-                "memx_scope": "global",
+                "memorus_section": ["debugging", "tools", "workflow"][i],
+                "memorus_knowledge_type": ["method", "trick", "preference"][i],
+                "memorus_instructivity_score": [70.0, 65.0, 80.0][i],
+                "memorus_scope": "global",
             },
         )
 
@@ -41,7 +41,7 @@ def main() -> None:
     # --- 2. Markdown export ---
     md = mem.export(format="markdown")
     assert isinstance(md, str)
-    assert "# MemX Knowledge Export" in md
+    assert "# Memorus Knowledge Export" in md
     print(f"[2/4] Markdown export: {len(md)} chars")
     # Print first few lines
     for line in md.splitlines()[:6]:

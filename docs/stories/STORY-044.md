@@ -12,7 +12,7 @@
 
 ## User Story
 
-As a MemX user
+As a Memorus user
 I want to backup and transfer my memories
 So that my knowledge is portable across machines and projects
 
@@ -21,7 +21,7 @@ So that my knowledge is portable across machines and projects
 ## Description
 
 ### Background
-`Memory.export()` 和 `Memory.import_data()` 当前作为方法存根存在于 `memx/memory.py`，调用时抛出 `NotImplementedError`。用户需要：
+`Memory.export()` 和 `Memory.import_data()` 当前作为方法存根存在于 `memorus/memory.py`，调用时抛出 `NotImplementedError`。用户需要：
 1. 导出全部记忆（或按 scope 过滤）为 JSON 或 Markdown 格式，用于备份或迁移
 2. 从 JSON 文件导入记忆，经过 Curator 去重后入库，避免重复
 
@@ -30,7 +30,7 @@ So that my knowledge is portable across machines and projects
 - `Memory.export(format="json", scope=None)` — 完整 Bullet 元数据 JSON 导出
 - `Memory.export(format="markdown", scope=None)` — 人类可读 Markdown 列表
 - `Memory.import_data(data, format="json")` — JSON 导入 + Curator 去重
-- CLI `memx export` / `memx import` 命令
+- CLI `memorus export` / `memorus import` 命令
 - scope 过滤导出
 
 **Out of scope:**
@@ -43,15 +43,15 @@ So that my knowledge is portable across machines and projects
 
 ## Acceptance Criteria
 
-- [ ] `Memory.export(format="json")` 返回包含所有记忆的 JSON 结构，每条记忆含 `id`, `content`, `metadata`（含所有 `memx_` 前缀字段）
+- [ ] `Memory.export(format="json")` 返回包含所有记忆的 JSON 结构，每条记忆含 `id`, `content`, `metadata`（含所有 `memorus_` 前缀字段）
 - [ ] `Memory.export(format="json", scope="project:myapp")` 仅导出指定 scope 的记忆
 - [ ] JSON 导出包含版本头 `{"version": "1.0", "exported_at": "...", "total": N, "memories": [...]}`
 - [ ] `Memory.export(format="markdown")` 返回人类可读 Markdown 字符串，按 section 分组
 - [ ] `Memory.import_data(data, format="json")` 解析 JSON 并逐条经过 `CuratorEngine.curate()` 去重
 - [ ] 导入时重复记忆（similarity ≥ threshold）被跳过，返回统计 `{"imported": N, "skipped": M, "merged": K}`
 - [ ] 导入时 `BulletMetadata` 字段完整恢复（scope, decay_weight, tags 等）
-- [ ] `memx export [--format json|markdown] [--scope SCOPE] [--output FILE]` CLI 命令
-- [ ] `memx import FILE [--json]` CLI 命令
+- [ ] `memorus export [--format json|markdown] [--scope SCOPE] [--output FILE]` CLI 命令
+- [ ] `memorus import FILE [--json]` CLI 命令
 - [ ] 导出文件 > 0 条时可成功导回（round-trip 测试）
 
 ---
@@ -59,9 +59,9 @@ So that my knowledge is portable across machines and projects
 ## Technical Notes
 
 ### Components
-- `memx/memory.py` — 实现 `export()` 和 `import_data()`（替换 NotImplementedError 存根）
-- `memx/cli/main.py` — 新增 `export` 和 `import` 命令
-- `memx/utils/bullet_factory.py` — 可能需要 `from_export_dict()` 反序列化辅助
+- `memorus/memory.py` — 实现 `export()` 和 `import_data()`（替换 NotImplementedError 存根）
+- `memorus/cli/main.py` — 新增 `export` 和 `import` 命令
+- `memorus/utils/bullet_factory.py` — 可能需要 `from_export_dict()` 反序列化辅助
 
 ### API Design
 
@@ -73,7 +73,7 @@ def export(self, format: str = "json", scope: str | None = None) -> str | dict:
 
     if scope:
         memories = [m for m in memories
-                    if m.get("metadata", {}).get("memx_scope", "global") == scope]
+                    if m.get("metadata", {}).get("memorus_scope", "global") == scope]
 
     if format == "json":
         return {
@@ -125,7 +125,7 @@ def import_data(self, data: dict | str, format: str = "json") -> dict:
 ### Markdown Export Format
 
 ```markdown
-# MemX Knowledge Export
+# Memorus Knowledge Export
 > Exported: 2026-04-20T10:30:00Z | Total: 42 memories
 
 ## Commands (5)
@@ -181,17 +181,17 @@ def import_memories(ctx, file_path, as_json):
 ```
 
 ### Dependencies on Existing Code
-- `memx/memory.py:Memory` — `get_all()`, `export()` / `import_data()` 存根
-- `memx/engines/curator/engine.py:CuratorEngine` — 去重检查
-- `memx/utils/bullet_factory.py:BulletFactory` — 序列化/反序列化
-- `memx/cli/main.py` — Click group
+- `memorus/memory.py:Memory` — `get_all()`, `export()` / `import_data()` 存根
+- `memorus/engines/curator/engine.py:CuratorEngine` — 去重检查
+- `memorus/utils/bullet_factory.py:BulletFactory` — 序列化/反序列化
+- `memorus/cli/main.py` — Click group
 
 ### Edge Cases
 - 空数据库导出 → `{"version": "1.0", "total": 0, "memories": []}`
 - 导入空文件 → `{"imported": 0, "skipped": 0, "merged": 0}`
 - 导入非法 JSON → 抛出明确 `ValueError`
 - 导入缺少 `version` 字段 → 默认按 v1.0 处理
-- 导入旧版本格式（无 memx_ 前缀）→ 使用默认元数据
+- 导入旧版本格式（无 memorus_ 前缀）→ 使用默认元数据
 - 大文件导入（>10000 条）→ 分批处理，避免内存爆炸
 
 ---
@@ -199,7 +199,7 @@ def import_memories(ctx, file_path, as_json):
 ## Dependencies
 
 **Prerequisite Stories:**
-- STORY-004: MemXMemory Decorator（已完成）
+- STORY-004: MemorusMemory Decorator（已完成）
 - STORY-017: Curator 核心去重（已完成）
 
 **Blocked Stories:**
@@ -213,7 +213,7 @@ def import_memories(ctx, file_path, as_json):
 - [ ] `Memory.export(format="markdown")` 实现并测试
 - [ ] `Memory.import_data()` 经过 Curator 去重并测试
 - [ ] Round-trip 测试（export → import → 无重复）
-- [ ] CLI `memx export` / `memx import` 命令实现并测试
+- [ ] CLI `memorus export` / `memorus import` 命令实现并测试
 - [ ] scope 过滤导出测试
 - [ ] mypy --strict 通过
 - [ ] ruff check 通过

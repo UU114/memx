@@ -1,8 +1,8 @@
-"""Unit tests for memx.utils.text_processing — tokenization and stemming."""
+"""Unit tests for memorus.utils.text_processing — tokenization and stemming."""
 
 from __future__ import annotations
 
-from memx.core.utils.text_processing import (
+from memorus.core.utils.text_processing import (
     extract_tokens,
     stem_english,
     tokenize_chinese,

@@ -12,8 +12,8 @@
 
 ## User Story
 
-As a MemX developer
-I want a TeamConfig independent from MemXConfig
+As a Memorus developer
+I want a TeamConfig independent from MemorusConfig
 So that Team configuration can evolve without affecting Core
 
 ---
@@ -21,7 +21,7 @@ So that Team configuration can evolve without affecting Core
 ## Description
 
 ### Background
-Team Memory 需要独立的配置模型，与 Core 的 `MemXConfig` 完全分离。这确保 Team 配置的演进不会影响 Core，也支持 Team Layer 的可剥离性（NFR-014）。
+Team Memory 需要独立的配置模型，与 Core 的 `MemorusConfig` 完全分离。这确保 Team 配置的演进不会影响 Core，也支持 Team Layer 的可剥离性（NFR-014）。
 
 ### Scope
 **In scope:**
@@ -48,8 +48,8 @@ Team Memory 需要独立的配置模型，与 Core 的 `MemXConfig` 完全分离
 - [ ] `RedactorConfig` 子模型：`llm_generalize`, `custom_patterns`
 - [ ] `LayerBoostConfig` 子模型：`local_boost`, `team_boost`（默认 1.5 / 1.0）
 - [ ] `MandatoryOverride` 子模型：`bullet_id`, `reason`, `expires`（reason 和 expires 必填）
-- [ ] TeamConfig 与 MemXConfig 完全独立（不继承、不嵌套）
-- [ ] 配置加载支持 YAML 文件和环境变量（`MEMX_TEAM_*` 前缀）
+- [ ] TeamConfig 与 MemorusConfig 完全独立（不继承、不嵌套）
+- [ ] 配置加载支持 YAML 文件和环境变量（`MEMORUS_TEAM_*` 前缀）
 - [ ] 单元测试覆盖校验规则和默认值
 - [ ] mypy --strict 通过
 
@@ -58,12 +58,12 @@ Team Memory 需要独立的配置模型，与 Core 的 `MemXConfig` 完全分离
 ## Technical Notes
 
 ### Components
-- `memx/team/config.py` — TeamConfig 及子模型定义
+- `memorus/team/config.py` — TeamConfig 及子模型定义
 
 ### Data Structures
 
 ```python
-# memx/team/config.py
+# memorus/team/config.py
 from pydantic import BaseModel, Field
 from datetime import datetime
 
@@ -101,7 +101,7 @@ class TeamConfig(BaseModel):
 
 ### Configuration Loading
 - 文件路径优先级：`./team_config.yaml` > `~/.ace/team_config.yaml`
-- 环境变量：`MEMX_TEAM_ENABLED=true`, `MEMX_TEAM_SERVER_URL=...` 等
+- 环境变量：`MEMORUS_TEAM_ENABLED=true`, `MEMORUS_TEAM_SERVER_URL=...` 等
 - 环境变量覆盖文件配置
 
 ---
@@ -109,7 +109,7 @@ class TeamConfig(BaseModel):
 ## Dependencies
 
 **Prerequisite Stories:**
-- STORY-048: 重构 memx/ → memx/core/
+- STORY-048: 重构 memorus/ → memorus/core/
 
 **Blocked Stories:**
 - STORY-052: ext/team_bootstrap.py 条件注入

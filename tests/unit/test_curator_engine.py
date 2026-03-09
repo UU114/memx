@@ -1,17 +1,17 @@
-"""Unit tests for memx.engines.curator.engine — CuratorEngine."""
+"""Unit tests for memorus.engines.curator.engine — CuratorEngine."""
 
 from __future__ import annotations
 
 import math
 
-from memx.core.config import CuratorConfig
-from memx.core.engines.curator.engine import (
+from memorus.core.config import CuratorConfig
+from memorus.core.engines.curator.engine import (
     CurateResult,
     CuratorEngine,
     ExistingBullet,
     MergeCandidate,
 )
-from memx.core.types import CandidateBullet
+from memorus.core.types import CandidateBullet
 
 # ── Helper factories ─────────────────────────────────────────────────
 

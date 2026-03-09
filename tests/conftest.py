@@ -1,4 +1,4 @@
-"""Shared test fixtures for MemX."""
+"""Shared test fixtures for Memorus."""
 
 from __future__ import annotations
 

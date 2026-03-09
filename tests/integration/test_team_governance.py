@@ -21,10 +21,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from memx.team.config import MandatoryOverride, TeamConfig
-from memx.team.merger import MultiPoolRetriever, LayerBoostConfig, _MANDATORY_SCORE
-from memx.team.nominator import SupersedeDetector, SupersedeProposal, submit_supersede
-from memx.team.types import TeamBullet
+from memorus.team.config import MandatoryOverride, TeamConfig
+from memorus.team.merger import MultiPoolRetriever, LayerBoostConfig, _MANDATORY_SCORE
+from memorus.team.nominator import SupersedeDetector, SupersedeProposal, submit_supersede
+from memorus.team.types import TeamBullet
 
 
 # ---------------------------------------------------------------------------

@@ -12,7 +12,7 @@
 
 ## User Story
 
-As a MemX user
+As a Memorus user
 I want to manually manage my memories
 So that I have full control over my Playbook
 
@@ -21,18 +21,18 @@ So that I have full control over my Playbook
 ## Description
 
 ### Background
-除了自动学习，用户也需要手动管理知识库的能力。`memx learn` 让用户直接教 MemX 新知识（经过 Reflector + Curator 处理），`memx list` 列出已有记忆（支持过滤），`memx forget` 删除指定记忆，`memx sweep` 手动触发衰退扫描。
+除了自动学习，用户也需要手动管理知识库的能力。`memorus learn` 让用户直接教 Memorus 新知识（经过 Reflector + Curator 处理），`memorus list` 列出已有记忆（支持过滤），`memorus forget` 删除指定记忆，`memorus sweep` 手动触发衰退扫描。
 
 ### Scope
 **In scope:**
-- `memx learn <content>` — 手动添加知识
-- `memx list` — 列出记忆
-- `memx forget <id>` — 删除记忆
-- `memx sweep` — 手动衰退扫描
+- `memorus learn <content>` — 手动添加知识
+- `memorus list` — 列出记忆
+- `memorus forget <id>` — 删除记忆
+- `memorus sweep` — 手动衰退扫描
 - 各命令支持 `--json` 输出
 
 **Out of scope:**
-- `memx export/import`（STORY-044）
+- `memorus export/import`（STORY-044）
 - 批量操作
 - 交互式编辑
 
@@ -40,16 +40,16 @@ So that I have full control over my Playbook
 
 ## Acceptance Criteria
 
-- [ ] `memx learn <content>` 将内容经过 IngestPipeline（Reflector + Curator）处理后存储
+- [ ] `memorus learn <content>` 将内容经过 IngestPipeline（Reflector + Curator）处理后存储
 - [ ] learn 成功后显示蒸馏结果（knowledge_type、distilled_rule、是否被去重）
-- [ ] `memx learn --raw <content>` 跳过 Reflector，直接存储（用于精确控制内容）
-- [ ] `memx list` 列出所有记忆（id、content 摘要、type、decay_weight、tags）
-- [ ] `memx list --scope project:<name>` 按 scope 过滤
-- [ ] `memx list --type <knowledge_type>` 按类型过滤
-- [ ] `memx list --limit N` 限制显示数量（默认 20）
-- [ ] `memx forget <id>` 删除指定 id 的记忆，显示确认信息
-- [ ] `memx forget <id> --yes` 跳过确认直接删除
-- [ ] `memx sweep` 手动执行 DecayEngine.sweep()，显示结果（archived/permanent/updated 数量）
+- [ ] `memorus learn --raw <content>` 跳过 Reflector，直接存储（用于精确控制内容）
+- [ ] `memorus list` 列出所有记忆（id、content 摘要、type、decay_weight、tags）
+- [ ] `memorus list --scope project:<name>` 按 scope 过滤
+- [ ] `memorus list --type <knowledge_type>` 按类型过滤
+- [ ] `memorus list --limit N` 限制显示数量（默认 20）
+- [ ] `memorus forget <id>` 删除指定 id 的记忆，显示确认信息
+- [ ] `memorus forget <id> --yes` 跳过确认直接删除
+- [ ] `memorus sweep` 手动执行 DecayEngine.sweep()，显示结果（archived/permanent/updated 数量）
 - [ ] 所有命令支持 `--json` 输出格式
 
 ---
@@ -57,7 +57,7 @@ So that I have full control over my Playbook
 ## Technical Notes
 
 ### Components
-- `memx/cli/main.py` — 追加命令到已有 Click group
+- `memorus/cli/main.py` — 追加命令到已有 Click group
 
 ### API Design
 
@@ -68,7 +68,7 @@ So that I have full control over my Playbook
 @click.option("--json", "as_json", is_flag=True, help="Output as JSON")
 @click.pass_context
 def learn(ctx, content: str, raw: bool, as_json: bool):
-    """Teach MemX new knowledge."""
+    """Teach Memorus new knowledge."""
     memory = ctx.obj["memory"]
     if raw:
         result = memory.add(
@@ -186,17 +186,17 @@ Decay sweep complete:
 ```
 
 ### Dependencies on Existing Code
-- `memx/cli/main.py` — STORY-041 的 Click group
-- `memx/memory.py:Memory` — add(), get_all(), get(), delete()
-- `memx/engines/decay/engine.py:DecayEngine` — sweep()
-- `memx/pipeline/ingest.py:IngestPipeline` — learn 路径
+- `memorus/cli/main.py` — STORY-041 的 Click group
+- `memorus/memory.py:Memory` — add(), get_all(), get(), delete()
+- `memorus/engines/decay/engine.py:DecayEngine` — sweep()
+- `memorus/pipeline/ingest.py:IngestPipeline` — learn 路径
 
 ### Edge Cases
-- `memx learn ""` → 空内容，显示错误提示
-- `memx forget` 无 ID → Click 自动报错
-- `memx forget <不存在的ID>` → "Memory not found" 错误
-- `memx list` 无记忆 → "No memories yet"
-- `memx sweep` 无记忆 → 显示全零结果
+- `memorus learn ""` → 空内容，显示错误提示
+- `memorus forget` 无 ID → Click 自动报错
+- `memorus forget <不存在的ID>` → "Memory not found" 错误
+- `memorus list` 无记忆 → "No memories yet"
+- `memorus sweep` 无记忆 → 显示全零结果
 - content 包含 shell 特殊字符 → Click 参数自动处理
 - 非常长的 content → IngestPipeline 内部截断
 
@@ -214,7 +214,7 @@ Decay sweep complete:
 
 ## Definition of Done
 
-- [ ] `memx/cli/main.py` 新增 learn, list, forget, sweep 命令
+- [ ] `memorus/cli/main.py` 新增 learn, list, forget, sweep 命令
 - [ ] 各命令 `--json` 输出测试
 - [ ] 各命令错误路径测试
 - [ ] mypy --strict 通过

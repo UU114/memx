@@ -74,7 +74,7 @@ class MetadataMatcher:
 ```
 
 ### Components
-- `memx/engines/generator/metadata_matcher.py`
+- `memorus/engines/generator/metadata_matcher.py`
 
 ### Scoring
 - tools 命中: +4.0（最多 4.0）
@@ -96,7 +96,7 @@ class MetadataMatcher:
 
 ## Definition of Done
 
-- [ ] `memx/engines/generator/metadata_matcher.py` 实现
+- [ ] `memorus/engines/generator/metadata_matcher.py` 实现
 - [ ] 单元测试覆盖三种匹配类型
 - [ ] mypy --strict 通过
 - [ ] ruff check 通过

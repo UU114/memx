@@ -12,7 +12,7 @@
 
 ## User Story
 
-As MemXMemory.search()
+As MemorusMemory.search()
 I want a retrieval pipeline that automatically reinforces recalled memories
 So that frequently used knowledge persists
 
@@ -28,7 +28,7 @@ RetrievalPipeline 是 search() 操作的顶层编排器，串联 GeneratorEngine
 - RetrievalPipeline.search() 编排 Generator → Trimmer → Reinforce
 - RecallReinforcer 异步更新 recall_count
 - SearchResult 数据结构
-- 对接 MemXMemory.search()（ace_enabled=True 时使用此管线）
+- 对接 MemorusMemory.search()（ace_enabled=True 时使用此管线）
 - 集成 IngestPipeline 的 Curator 对接
 
 **Out of scope:**
@@ -42,7 +42,7 @@ RetrievalPipeline 是 search() 操作的顶层编排器，串联 GeneratorEngine
 - [ ] `RetrievalPipeline.search()` 编排 Generator → Trimmer → Reinforce
 - [ ] RecallReinforcer 异步更新 recall_count（不阻塞返回）
 - [ ] 返回 `SearchResult(results, mode, total_candidates)`
-- [ ] ace_enabled=True 时 `MemXMemory.search()` 调用此管线
+- [ ] ace_enabled=True 时 `MemorusMemory.search()` 调用此管线
 - [ ] Generator 异常 → 降级到 mem0 原生 search
 - [ ] Trimmer 异常 → 返回未裁剪结果
 - [ ] Reinforcer 异常 → 仅记录 WARNING，不影响搜索结果返回
@@ -80,7 +80,7 @@ class RetrievalPipeline:
 ```
 
 ### Components
-- `memx/pipeline/retrieval.py`
+- `memorus/pipeline/retrieval.py`
 
 ### Architecture
 ```
@@ -93,14 +93,14 @@ RetrievalPipeline.search(query)
 ```
 
 ### Integration with Memory
-需要在 `memx/memory.py` 中对接：
+需要在 `memorus/memory.py` 中对接：
 ```python
 # Memory.__init__() — 初始化 RetrievalPipeline
 # Memory.search() — ace_enabled 时使用 RetrievalPipeline
 ```
 
 ### Also: IngestPipeline Curator 对接
-在 `memx/pipeline/ingest.py` 中完善 Curator 集成（Step 3 的 placeholder）。
+在 `memorus/pipeline/ingest.py` 中完善 Curator 集成（Step 3 的 placeholder）。
 
 ---
 
@@ -110,7 +110,7 @@ RetrievalPipeline.search(query)
 - STORY-028: GeneratorEngine
 - STORY-029: TokenBudgetTrimmer
 - STORY-021: Decay reinforce
-- STORY-004: MemXMemory ✓
+- STORY-004: MemorusMemory ✓
 
 **Blocked Stories:**
 - STORY-031: Generator 测试全覆盖（Sprint 3）
@@ -119,9 +119,9 @@ RetrievalPipeline.search(query)
 
 ## Definition of Done
 
-- [ ] `memx/pipeline/retrieval.py` 实现 RetrievalPipeline
-- [ ] `memx/memory.py` 对接 RetrievalPipeline
-- [ ] `memx/pipeline/ingest.py` 对接 CuratorEngine
+- [ ] `memorus/pipeline/retrieval.py` 实现 RetrievalPipeline
+- [ ] `memorus/memory.py` 对接 RetrievalPipeline
+- [ ] `memorus/pipeline/ingest.py` 对接 CuratorEngine
 - [ ] 搜索 + 降级 + 异常处理测试
 - [ ] mypy --strict 通过
 - [ ] ruff check 通过

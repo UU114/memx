@@ -1,4 +1,4 @@
-"""Integration tests for memx/integration/ — end-to-end and edge case coverage.
+"""Integration tests for memorus/integration/ — end-to-end and edge case coverage.
 
 Focuses on scenarios NOT already covered by test_integration_manager.py
 and test_cli_hooks.py:
@@ -24,8 +24,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from memx.core.config import IntegrationConfig
-from memx.core.integration import (
+from memorus.core.config import IntegrationConfig
+from memorus.core.integration import (
     BaseHook,
     CLIPostActionHook,
     CLIPreInferenceHook,
@@ -38,9 +38,9 @@ from memx.core.integration import (
     ToolEvent,
     setup_signal_handlers,
 )
-from memx.core.integration.cli_hooks import _MAX_OUTPUT_LENGTH, _VALID_FORMATS
-from memx.core.integration.hooks import BaseHook as DirectBaseHook
-from memx.core.integration.manager import IntegrationManager as DirectManager
+from memorus.core.integration.cli_hooks import _MAX_OUTPUT_LENGTH, _VALID_FORMATS
+from memorus.core.integration.hooks import BaseHook as DirectBaseHook
+from memorus.core.integration.manager import IntegrationManager as DirectManager
 
 
 # ---------------------------------------------------------------------------
@@ -77,7 +77,7 @@ def _sample_results(count: int = 2) -> dict[str, Any]:
             "memory": f"Sample memory content {i}.",
             "score": round(0.9 - i * 0.1, 2),
             "metadata": {
-                "memx_knowledge_type": "preference" if i == 0 else "tool_pattern",
+                "memorus_knowledge_type": "preference" if i == 0 else "tool_pattern",
             },
         })
     return {"results": results}
@@ -119,7 +119,7 @@ def _make_tool_event(
 
 
 class TestPublicAPIExports:
-    """Verify memx.integration.__init__.py re-exports are correct."""
+    """Verify memorus.integration.__init__.py re-exports are correct."""
 
     def test_base_hook_exported(self) -> None:
         assert BaseHook is DirectBaseHook
@@ -181,7 +181,7 @@ class TestFullPipelineEndToEnd:
                         "metadata": {
                             "created_at": "2026-01-01T00:00:00+00:00",
                             "recall_count": 3,
-                            "memx_decay_weight": 0.8,
+                            "memorus_decay_weight": 0.8,
                         },
                     }
                 ]
@@ -202,7 +202,7 @@ class TestFullPipelineEndToEnd:
         assert result is not None
         assert isinstance(result, ContextInjection)
         assert len(result.memories) == 2
-        assert "<memx-context>" in result.rendered
+        assert "<memorus-context>" in result.rendered
         mock_mem.search.assert_called_once_with("How to run tests?")
 
         # Step 2: Post-action distillation
@@ -339,9 +339,9 @@ class TestConfigInteractions:
     def test_context_template_respected_through_pipeline(self) -> None:
         """context_template in config flows through to rendered output."""
         for template, marker in [
-            ("xml", "<memx-context>"),
-            ("markdown", "## MemX Context"),
-            ("plain", "[MemX]"),
+            ("xml", "<memorus-context>"),
+            ("markdown", "## Memorus Context"),
+            ("plain", "[Memorus]"),
         ]:
             config = IntegrationConfig(context_template=template)
             mock_mem = _make_mock_memory(search_results=_sample_results(1))
@@ -456,7 +456,7 @@ class TestErrorRecovery:
         ok_hook = OKPost()
         mgr.register_hooks([FailPost(), ok_hook])
 
-        with caplog.at_level(logging.WARNING, logger="memx.core.integration.manager"):
+        with caplog.at_level(logging.WARNING, logger="memorus.core.integration.manager"):
             asyncio.run(mgr.fire_post_action(_make_tool_event()))
 
         assert ok_hook.fired is True
@@ -490,7 +490,7 @@ class TestErrorRecovery:
         ok_hook = OKSession()
         mgr.register_hooks([FailSession(), ok_hook])
 
-        with caplog.at_level(logging.WARNING, logger="memx.core.integration.manager"):
+        with caplog.at_level(logging.WARNING, logger="memorus.core.integration.manager"):
             asyncio.run(mgr.fire_session_end("s1"))
 
         assert ok_hook.sessions == ["s1"]
@@ -532,7 +532,7 @@ class TestErrorRecovery:
         ok_post = OKPost()
         mgr.register_hooks([FailPre(), ok_post, FailSession()])
 
-        with caplog.at_level(logging.WARNING, logger="memx.core.integration.manager"):
+        with caplog.at_level(logging.WARNING, logger="memorus.core.integration.manager"):
             # Pre-inference fails -> returns None
             result = asyncio.run(mgr.fire_pre_inference("test"))
             assert result is None
@@ -694,13 +694,13 @@ class TestFormatEdgeCases:
 
     def test_xml_with_empty_list(self) -> None:
         result = CLIPreInferenceHook._format([], "xml")
-        assert "<memx-context>" in result
-        assert "</memx-context>" in result
+        assert "<memorus-context>" in result
+        assert "</memorus-context>" in result
         assert "<memory" not in result
 
     def test_markdown_with_empty_list(self) -> None:
         result = CLIPreInferenceHook._format([], "markdown")
-        assert "## MemX Context" in result
+        assert "## Memorus Context" in result
         assert "- **[" not in result
 
     def test_plain_with_empty_list(self) -> None:
@@ -728,7 +728,7 @@ class TestFormatEdgeCases:
     def test_plain_with_missing_memory_field(self) -> None:
         results = [{}]
         rendered = CLIPreInferenceHook._format(results, "plain")
-        assert "[MemX] " in rendered
+        assert "[Memorus] " in rendered
 
 
 # ===========================================================================
@@ -840,7 +840,7 @@ class TestSessionEndSweepEdgeCases:
                 "metadata": {
                     "created_at": "2026-01-01T00:00:00+00:00",
                     "recall_count": 5,
-                    "memx_decay_weight": 0.9,
+                    "memorus_decay_weight": 0.9,
                 },
             },
             {
@@ -912,7 +912,7 @@ class TestSessionEndSweepEdgeCases:
         mock_decay = _make_mock_decay_engine(sweep_side_effect=RuntimeError("sweep fail"))
         hook = CLISessionEndHook(mock_mem, mock_decay)
 
-        with caplog.at_level(logging.WARNING, logger="memx.core.integration.cli_hooks"):
+        with caplog.at_level(logging.WARNING, logger="memorus.core.integration.cli_hooks"):
             asyncio.run(hook.on_session_end("sess"))
 
         # _run_sweep catches exception internally; on_session_end marks completed
@@ -935,7 +935,7 @@ class TestSessionEndSweepEdgeCases:
 
         # Patch _run_sweep to raise directly (bypassing internal try/except)
         with patch.object(hook, "_run_sweep", side_effect=RuntimeError("outer fail")):
-            with caplog.at_level(logging.WARNING, logger="memx.core.integration.cli_hooks"):
+            with caplog.at_level(logging.WARNING, logger="memorus.core.integration.cli_hooks"):
                 asyncio.run(hook.on_session_end("sess"))
 
         assert hook._completed is False
@@ -964,7 +964,7 @@ class TestSignalHandlerEdgeCases:
             # The handler uses wait_for with 5s timeout internally,
             # but we cannot actually wait 5s in a test.
             # We patch asyncio.wait_for to raise TimeoutError immediately
-            with patch("memx.core.integration.cli_hooks.asyncio.wait_for", side_effect=asyncio.TimeoutError()):
+            with patch("memorus.core.integration.cli_hooks.asyncio.wait_for", side_effect=asyncio.TimeoutError()):
                 with pytest.raises(SystemExit) as exc_info:
                     handler(signal.SIGINT, None)
                 assert exc_info.value.code == 0
@@ -1030,7 +1030,7 @@ class TestCLIPreInferenceConfigDefaults:
         hook = CLIPreInferenceHook(mock_mem, config=config)
         result = asyncio.run(hook.on_user_input("query"))
         assert result.format == "plain"
-        assert "[MemX]" in result.rendered
+        assert "[Memorus]" in result.rendered
 
 
 # ===========================================================================
@@ -1106,7 +1106,7 @@ class TestLoggingBehavior:
             async def on_user_input(self, input: str) -> ContextInjection:
                 return ContextInjection()
 
-        with caplog.at_level(logging.INFO, logger="memx.core.integration.manager"):
+        with caplog.at_level(logging.INFO, logger="memorus.core.integration.manager"):
             mgr.register_hooks([SimpleHook()])
         assert "Registered hook: log_test_hook" in caplog.text
 
@@ -1122,7 +1122,7 @@ class TestLoggingBehavior:
                 return ContextInjection()
 
         mgr.register_hooks([SimpleHook(), SimpleHook()])
-        with caplog.at_level(logging.INFO, logger="memx.core.integration.manager"):
+        with caplog.at_level(logging.INFO, logger="memorus.core.integration.manager"):
             mgr.unregister_all()
         assert "Unregistered all hooks (2 removed)" in caplog.text
 
@@ -1141,7 +1141,7 @@ class TestLoggingBehavior:
 
         hook = SimpleHook()
         mgr.register_hooks([hook])
-        with caplog.at_level(logging.DEBUG, logger="memx.core.integration.manager"):
+        with caplog.at_level(logging.DEBUG, logger="memorus.core.integration.manager"):
             mgr.register_hooks([hook])
         assert "already registered" in caplog.text
 
@@ -1160,7 +1160,7 @@ class TestLoggingBehavior:
 
         mgr = IntegrationManager()
         mgr.register_hooks([DisabledPre()])
-        with caplog.at_level(logging.DEBUG, logger="memx.core.integration.manager"):
+        with caplog.at_level(logging.DEBUG, logger="memorus.core.integration.manager"):
             result = asyncio.run(mgr.fire_pre_inference("test"))
         assert result is None
         assert "disabled_pre disabled" in caplog.text
@@ -1170,7 +1170,7 @@ class TestLoggingBehavior:
     ) -> None:
         config = IntegrationConfig(auto_recall=False)
         mgr = IntegrationManager(config=config)
-        with caplog.at_level(logging.DEBUG, logger="memx.core.integration.manager"):
+        with caplog.at_level(logging.DEBUG, logger="memorus.core.integration.manager"):
             result = asyncio.run(mgr.fire_pre_inference("test"))
         assert result is None
         assert "auto_recall disabled" in caplog.text
@@ -1180,7 +1180,7 @@ class TestLoggingBehavior:
     ) -> None:
         config = IntegrationConfig(auto_reflect=False)
         mgr = IntegrationManager(config=config)
-        with caplog.at_level(logging.DEBUG, logger="memx.core.integration.manager"):
+        with caplog.at_level(logging.DEBUG, logger="memorus.core.integration.manager"):
             asyncio.run(mgr.fire_post_action(_make_tool_event()))
         assert "auto_reflect disabled" in caplog.text
 
@@ -1189,7 +1189,7 @@ class TestLoggingBehavior:
     ) -> None:
         config = IntegrationConfig(sweep_on_exit=False)
         mgr = IntegrationManager(config=config)
-        with caplog.at_level(logging.DEBUG, logger="memx.core.integration.manager"):
+        with caplog.at_level(logging.DEBUG, logger="memorus.core.integration.manager"):
             asyncio.run(mgr.fire_session_end("s"))
         assert "sweep_on_exit disabled" in caplog.text
 
@@ -1199,7 +1199,7 @@ class TestLoggingBehavior:
         mock_mem = _make_mock_memory(get_all_return={"memories": []})
         mock_decay = _make_mock_decay_engine()
         hook = CLISessionEndHook(mock_mem, mock_decay)
-        with caplog.at_level(logging.INFO, logger="memx.core.integration.cli_hooks"):
+        with caplog.at_level(logging.INFO, logger="memorus.core.integration.cli_hooks"):
             asyncio.run(hook.on_session_end("sess-log"))
         assert "Session end completed" in caplog.text
 
@@ -1210,6 +1210,6 @@ class TestLoggingBehavior:
         mock_decay = _make_mock_decay_engine()
         hook = CLISessionEndHook(mock_mem, mock_decay)
         asyncio.run(hook.on_session_end("sess"))
-        with caplog.at_level(logging.DEBUG, logger="memx.core.integration.cli_hooks"):
+        with caplog.at_level(logging.DEBUG, logger="memorus.core.integration.cli_hooks"):
             asyncio.run(hook.on_session_end("sess"))
         assert "Session end already completed" in caplog.text

@@ -1,1 +1,1 @@
-# Performance benchmark tests for MemX engines.
+# Performance benchmark tests for Memorus engines.

@@ -8,8 +8,8 @@ from unittest.mock import MagicMock, call
 
 import pytest
 
-from memx.team.sync_client import BulletIndexEntry
-from memx.team.tombstone import TombstoneManager
+from memorus.team.sync_client import BulletIndexEntry
+from memorus.team.tombstone import TombstoneManager
 
 
 # ---------------------------------------------------------------------------

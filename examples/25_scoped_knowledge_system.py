@@ -24,11 +24,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from datetime import datetime, timezone
 
 from examples._mock_backend import create_mock_memory
-from memx.config import CuratorConfig, RetrievalConfig
-from memx.engines.curator.engine import CuratorEngine, ExistingBullet
-from memx.engines.generator.engine import BulletForSearch, GeneratorEngine
-from memx.engines.generator.metadata_matcher import MetadataInfo
-from memx.types import BulletSection, CandidateBullet, KnowledgeType, SourceType
+from memorus.config import CuratorConfig, RetrievalConfig
+from memorus.engines.curator.engine import CuratorEngine, ExistingBullet
+from memorus.engines.generator.engine import BulletForSearch, GeneratorEngine
+from memorus.engines.generator.metadata_matcher import MetadataInfo
+from memorus.types import BulletSection, CandidateBullet, KnowledgeType, SourceType
 
 logger = logging.getLogger(__name__)
 
@@ -55,12 +55,12 @@ def main() -> None:
 
     for scope, content, tools, tags in scope_data:
         mem.add(content, user_id="dev1", metadata={
-            "memx_section": "tools",
-            "memx_knowledge_type": "method",
-            "memx_related_tools": json.dumps(tools),
-            "memx_scope": scope,
-            "memx_tags": json.dumps(tags),
-            "memx_decay_weight": 1.0,
+            "memorus_section": "tools",
+            "memorus_knowledge_type": "method",
+            "memorus_related_tools": json.dumps(tools),
+            "memorus_scope": scope,
+            "memorus_tags": json.dumps(tags),
+            "memorus_decay_weight": 1.0,
         })
 
     print(f"\n  Stored {len(scope_data)} bullets:")
@@ -79,7 +79,7 @@ def main() -> None:
     for entry in raw.get("results", []):
         meta = entry.get("metadata", {})
         tools = []
-        tools_str = meta.get("memx_related_tools", "[]")
+        tools_str = meta.get("memorus_related_tools", "[]")
         if isinstance(tools_str, str):
             try:
                 tools = json.loads(tools_str)
@@ -87,7 +87,7 @@ def main() -> None:
                 pass
 
         tags = []
-        tags_str = meta.get("memx_tags", "[]")
+        tags_str = meta.get("memorus_tags", "[]")
         if isinstance(tags_str, str):
             try:
                 tags = json.loads(tags_str)
@@ -100,7 +100,7 @@ def main() -> None:
             metadata=MetadataInfo(related_tools=tools, tags=tags),
             created_at=NOW,
             decay_weight=1.0,
-            scope=meta.get("memx_scope", "global"),
+            scope=meta.get("memorus_scope", "global"),
         ))
 
     logger.debug("Loaded %d bullets for search", len(all_bullets))
@@ -204,7 +204,7 @@ def main() -> None:
     # Verify scope preserved
     for entry in raw2.get("results", []):
         meta = entry.get("metadata", {})
-        entry_scope = meta.get("memx_scope", "global")
+        entry_scope = meta.get("memorus_scope", "global")
         logger.debug("Imported entry scope: %s", entry_scope)
         assert entry_scope == "project:alpha", f"Scope not preserved: {entry_scope}"
 

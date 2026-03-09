@@ -1,7 +1,7 @@
 """Guard tests: verify Core/Team decoupling invariants (NFR-014).
 
 These tests act as CI safeguards to prevent accidental coupling
-between memx.core and memx.team.  If any test here fails, it means
+between memorus.core and memorus.team.  If any test here fails, it means
 a developer introduced a forbidden dependency direction.
 """
 
@@ -16,9 +16,9 @@ import pytest
 
 # Resolve CORE_DIR / EXT_DIR relative to the repo root
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-CORE_DIR = _REPO_ROOT / "memx" / "core"
-EXT_DIR = _REPO_ROOT / "memx" / "ext"
-MEMX_DIR = _REPO_ROOT / "memx"
+CORE_DIR = _REPO_ROOT / "memorus" / "core"
+EXT_DIR = _REPO_ROOT / "memorus" / "ext"
+MEMORUS_DIR = _REPO_ROOT / "memorus"
 
 
 def _collect_team_imports(directory: Path) -> List[str]:
@@ -38,12 +38,12 @@ def _collect_team_imports(directory: Path) -> List[str]:
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
                 for alias in node.names:
-                    if alias.name.startswith("memx.team"):
+                    if alias.name.startswith("memorus.team"):
                         violations.append(
                             f"{py_file}:{node.lineno} import {alias.name}"
                         )
             elif isinstance(node, ast.ImportFrom):
-                if node.module and node.module.startswith("memx.team"):
+                if node.module and node.module.startswith("memorus.team"):
                     violations.append(
                         f"{py_file}:{node.lineno} from {node.module}"
                     )
@@ -56,23 +56,23 @@ class TestDecoupling:
     # ── Static import checks ─────────────────────────────────────
 
     def test_core_does_not_import_team(self) -> None:
-        """AST-level check: memx/core/ must never import from memx.team."""
+        """AST-level check: memorus/core/ must never import from memorus.team."""
         violations = _collect_team_imports(CORE_DIR)
         assert not violations, (
             "Core imports Team — this violates NFR-014:\n"
             + "\n".join(violations)
         )
 
-    def test_ext_is_the_only_memx_package_importing_team(self) -> None:
-        """Only memx/ext/ is allowed to reference memx.team.
+    def test_ext_is_the_only_memorus_package_importing_team(self) -> None:
+        """Only memorus/ext/ is allowed to reference memorus.team.
 
-        Scan every .py file under memx/ *except* memx/ext/ and
-        memx/team/ itself, and verify zero Team imports.
+        Scan every .py file under memorus/ *except* memorus/ext/ and
+        memorus/team/ itself, and verify zero Team imports.
         """
         violations: list[str] = []
-        for py_file in sorted(MEMX_DIR.rglob("*.py")):
-            # Skip memx/ext/ (allowed), memx/team/ (self-ref is fine)
-            rel = py_file.relative_to(MEMX_DIR)
+        for py_file in sorted(MEMORUS_DIR.rglob("*.py")):
+            # Skip memorus/ext/ (allowed), memorus/team/ (self-ref is fine)
+            rel = py_file.relative_to(MEMORUS_DIR)
             parts = rel.parts
             if parts and parts[0] in ("ext", "team"):
                 continue
@@ -85,47 +85,47 @@ class TestDecoupling:
             for node in ast.walk(tree):
                 if isinstance(node, ast.Import):
                     for alias in node.names:
-                        if alias.name.startswith("memx.team"):
+                        if alias.name.startswith("memorus.team"):
                             violations.append(
                                 f"{py_file}:{node.lineno} import {alias.name}"
                             )
                 elif isinstance(node, ast.ImportFrom):
-                    if node.module and node.module.startswith("memx.team"):
+                    if node.module and node.module.startswith("memorus.team"):
                         violations.append(
                             f"{py_file}:{node.lineno} from {node.module}"
                         )
 
         assert not violations, (
-            "Non-ext package imports Team — only memx/ext/ may do this:\n"
+            "Non-ext package imports Team — only memorus/ext/ may do this:\n"
             + "\n".join(violations)
         )
 
     # ── Runtime isolation checks ─────────────────────────────────
 
     def test_core_functions_without_team(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Core Memory initialises when memx.team is completely unavailable."""
-        # Block every memx.team sub-import by injecting None sentinels.
+        """Core Memory initialises when memorus.team is completely unavailable."""
+        # Block every memorus.team sub-import by injecting None sentinels.
         blocked = [
-            k for k in list(sys.modules) if k.startswith("memx.team")
+            k for k in list(sys.modules) if k.startswith("memorus.team")
         ]
         for mod_name in blocked:
             monkeypatch.setitem(sys.modules, mod_name, None)
-        monkeypatch.setitem(sys.modules, "memx.team", None)
+        monkeypatch.setitem(sys.modules, "memorus.team", None)
 
         # Re-import Memory; it must not raise.
-        from memx.core.memory import Memory  # noqa: F811
+        from memorus.core.memory import Memory  # noqa: F811
 
         mem = Memory()
         assert mem is not None
         assert mem._config is not None
 
     def test_core_config_without_team(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Core MemXConfig loads without memx.team present."""
-        monkeypatch.setitem(sys.modules, "memx.team", None)
+        """Core MemorusConfig loads without memorus.team present."""
+        monkeypatch.setitem(sys.modules, "memorus.team", None)
 
-        from memx.core.config import MemXConfig
+        from memorus.core.config import MemorusConfig
 
-        cfg = MemXConfig.from_dict({})
+        cfg = MemorusConfig.from_dict({})
         assert cfg is not None
 
     # ── ext/team_bootstrap graceful degradation ──────────────────
@@ -134,15 +134,15 @@ class TestDecoupling:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """team_bootstrap.try_bootstrap_team returns False when Team is absent."""
-        # Make memx.team un-importable
-        monkeypatch.setitem(sys.modules, "memx.team", None)
-        monkeypatch.setitem(sys.modules, "memx.team.config", None)
+        # Make memorus.team un-importable
+        monkeypatch.setitem(sys.modules, "memorus.team", None)
+        monkeypatch.setitem(sys.modules, "memorus.team.config", None)
 
         # Force re-evaluation of the lazy import inside try_bootstrap_team
-        if "memx.ext.team_bootstrap" in sys.modules:
-            monkeypatch.delitem(sys.modules, "memx.ext.team_bootstrap")
+        if "memorus.ext.team_bootstrap" in sys.modules:
+            monkeypatch.delitem(sys.modules, "memorus.ext.team_bootstrap")
 
-        from memx.ext.team_bootstrap import try_bootstrap_team
+        from memorus.ext.team_bootstrap import try_bootstrap_team
 
         result = try_bootstrap_team(None)
         assert result is False, (

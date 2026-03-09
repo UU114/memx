@@ -1,4 +1,4 @@
-"""Unit tests for memx.engines.generator.score_merger — ScoreMerger."""
+"""Unit tests for memorus.engines.generator.score_merger — ScoreMerger."""
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from memx.core.config import RetrievalConfig
-from memx.core.engines.generator.score_merger import (
+from memorus.core.config import RetrievalConfig
+from memorus.core.engines.generator.score_merger import (
     MAX_KEYWORD_SCORE,
     BulletInfo,
     ScoreMerger,

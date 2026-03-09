@@ -12,7 +12,7 @@
 
 ## User Story
 
-As a MemX engine
+As a Memorus engine
 I want to detect learnable patterns from AI interactions
 So that valuable knowledge can be captured automatically
 
@@ -76,7 +76,7 @@ PatternDetector 是 Reflector 引擎的 Stage 1（第一阶段），负责从 AI
 
 ## Acceptance Criteria
 
-- [ ] InteractionEvent 数据结构已在 `memx/types.py` 中定义（tool_name, input, output, success, error_msg, timestamp）
+- [ ] InteractionEvent 数据结构已在 `memorus/types.py` 中定义（tool_name, input, output, success, error_msg, timestamp）
 - [ ] DetectedPattern 数据结构定义完成（pattern_type, raw_content, context, confidence）
 - [ ] PatternDetector 类实现 `detect(event: InteractionEvent) -> list[DetectedPattern]`
 - [ ] 支持错误修复模式检测：成功的事件且有关联错误 → 返回 DetectedPattern
@@ -91,7 +91,7 @@ PatternDetector 是 Reflector 引擎的 Stage 1（第一阶段），负责从 AI
 ## Technical Notes
 
 ### File Location
-`memx/engines/reflector/detector.py`
+`memorus/engines/reflector/detector.py`
 
 ### Implementation Sketch
 
@@ -99,7 +99,7 @@ PatternDetector 是 Reflector 引擎的 Stage 1（第一阶段），负责从 AI
 import logging
 from typing import Optional
 from collections import deque
-from memx.types import InteractionEvent, DetectedPattern
+from memorus.types import InteractionEvent, DetectedPattern
 
 logger = logging.getLogger(__name__)
 
@@ -188,7 +188,7 @@ class PatternDetector:
 
 ## Definition of Done
 
-- [ ] Code implemented in `memx/engines/reflector/detector.py`
+- [ ] Code implemented in `memorus/engines/reflector/detector.py`
 - [ ] Unit tests in `tests/unit/test_reflector.py` (detector section)
 - [ ] ≥ 9 个测试用例（2 规则 × 3 + 3 个代码过滤测试）
 - [ ] All tests passing

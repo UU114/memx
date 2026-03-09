@@ -71,7 +71,7 @@ Shadow Merge 的核心逻辑：
 ## Technical Notes
 
 ### Components
-- `memx/team/merger.py` — MultiPoolRetriever + ShadowMerger
+- `memorus/team/merger.py` — MultiPoolRetriever + ShadowMerger
 
 ### Data Structures
 
@@ -89,9 +89,9 @@ class ScoredResult:
 ### Implementation Sketch
 
 ```python
-# memx/team/merger.py
+# memorus/team/merger.py
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from memx.team.types import TeamBullet
+from memorus.team.types import TeamBullet
 
 class MultiPoolRetriever:
     """Combines Local and Team pools with Shadow Merge."""
@@ -215,7 +215,7 @@ class MultiPoolRetriever:
 ## Dependencies
 
 **Prerequisite Stories:**
-- STORY-048: 重构 memx/ → memx/core/
+- STORY-048: 重构 memorus/ → memorus/core/
 - STORY-050: TeamBullet 数据模型
 
 **Blocked Stories:**

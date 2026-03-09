@@ -90,16 +90,16 @@ default                                    → "general"
 ## Technical Notes
 
 ### File Location
-`memx/engines/reflector/scorer.py`
+`memorus/engines/reflector/scorer.py`
 
 ### Implementation Sketch
 
 ```python
 from typing import Optional
-from memx.types import (
+from memorus.types import (
     DetectedPattern, BulletSection, KnowledgeType,
 )
-from memx.config import ReflectorConfig
+from memorus.config import ReflectorConfig
 
 class ScoredCandidate:
     knowledge_type: KnowledgeType
@@ -187,7 +187,7 @@ class KnowledgeScorer:
 
 ## Definition of Done
 
-- [ ] Code implemented in `memx/engines/reflector/scorer.py`
+- [ ] Code implemented in `memorus/engines/reflector/scorer.py`
 - [ ] Unit tests in `tests/unit/test_reflector.py` (scorer section)
 - [ ] ≥ 10 个测试用例
 - [ ] All tests passing

@@ -1,11 +1,11 @@
-"""Unit tests for memx.types — BulletMetadata, enums, and auxiliary models."""
+"""Unit tests for memorus.types — BulletMetadata, enums, and auxiliary models."""
 
 from datetime import datetime, timezone
 
 import pytest
 from pydantic import ValidationError
 
-from memx.core.types import (
+from memorus.core.types import (
     BulletMetadata,
     BulletSection,
     CandidateBullet,

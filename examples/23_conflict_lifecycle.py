@@ -22,13 +22,13 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from datetime import datetime, timezone
 
 from examples._mock_backend import create_mock_memory
-from memx.config import CuratorConfig, ReflectorConfig, RetrievalConfig
-from memx.engines.curator.conflict import Conflict, ConflictDetector
-from memx.engines.curator.engine import CuratorEngine, ExistingBullet
-from memx.engines.generator.engine import BulletForSearch, GeneratorEngine
-from memx.engines.generator.metadata_matcher import MetadataInfo
-from memx.engines.reflector.engine import ReflectorEngine
-from memx.types import InteractionEvent
+from memorus.config import CuratorConfig, ReflectorConfig, RetrievalConfig
+from memorus.engines.curator.conflict import Conflict, ConflictDetector
+from memorus.engines.curator.engine import CuratorEngine, ExistingBullet
+from memorus.engines.generator.engine import BulletForSearch, GeneratorEngine
+from memorus.engines.generator.metadata_matcher import MetadataInfo
+from memorus.engines.reflector.engine import ReflectorEngine
+from memorus.types import InteractionEvent
 
 logger = logging.getLogger(__name__)
 
@@ -72,10 +72,10 @@ def main() -> None:
     # Store in memory
     for b in bullets_a:
         mem.add(b.content, user_id="dev1", metadata={
-            "memx_section": b.section.value,
-            "memx_knowledge_type": b.knowledge_type.value,
-            "memx_related_tools": str(b.related_tools),
-            "memx_scope": "project:demo23",
+            "memorus_section": b.section.value,
+            "memorus_knowledge_type": b.knowledge_type.value,
+            "memorus_related_tools": str(b.related_tools),
+            "memorus_scope": "project:demo23",
         })
 
     # ═════ Phase 2: Contradict — Second interaction (opposing) ═════════
@@ -120,7 +120,7 @@ def main() -> None:
         ExistingBullet(
             bullet_id=entry["id"],
             content=entry["memory"],
-            scope=entry.get("metadata", {}).get("memx_scope", "global"),
+            scope=entry.get("metadata", {}).get("memorus_scope", "global"),
             metadata=entry.get("metadata", {}),
         )
         for entry in raw.get("results", [])
@@ -142,10 +142,10 @@ def main() -> None:
     # Store the new bullets (whether add or merge)
     for b in curate_result.to_add:
         mem.add(b.content, user_id="dev1", metadata={
-            "memx_section": b.section.value,
-            "memx_knowledge_type": b.knowledge_type.value,
-            "memx_related_tools": str(b.related_tools),
-            "memx_scope": "project:demo23",
+            "memorus_section": b.section.value,
+            "memorus_knowledge_type": b.knowledge_type.value,
+            "memorus_related_tools": str(b.related_tools),
+            "memorus_scope": "project:demo23",
         })
     for mc in curate_result.to_merge:
         mem.update(mc.existing.bullet_id, mc.candidate.content)
@@ -161,7 +161,7 @@ def main() -> None:
         ExistingBullet(
             bullet_id=entry["id"],
             content=entry["memory"],
-            scope=entry.get("metadata", {}).get("memx_scope", "global"),
+            scope=entry.get("metadata", {}).get("memorus_scope", "global"),
             metadata=entry.get("metadata", {}),
         )
         for entry in raw2.get("results", [])
@@ -233,7 +233,7 @@ def main() -> None:
         ExistingBullet(
             bullet_id=entry["id"],
             content=entry["memory"],
-            scope=entry.get("metadata", {}).get("memx_scope", "global"),
+            scope=entry.get("metadata", {}).get("memorus_scope", "global"),
             metadata=entry.get("metadata", {}),
         )
         for entry in raw3.get("results", [])

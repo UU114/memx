@@ -63,7 +63,7 @@ Team Cache 需要与 ACE Sync Server 保持同步。本 Story 实现同步编排
 ## Technical Notes
 
 ### Components
-- **File:** `memx/team/cache_storage.py` — sync 方法扩展
+- **File:** `memorus/team/cache_storage.py` — sync 方法扩展
 - **State File:** `~/.ace/team_cache/{team_id}/sync_state.json`
 
 ### sync_state.json Format

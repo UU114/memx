@@ -21,11 +21,11 @@ So that multi-session lifecycle and IPC communication are reliable
 ## Description
 
 ### Background
-MemXDaemon 是 MemX 中最复杂的单体组件（8pt），涉及进程管理、IPC 通信、Session 生命周期、空闲超时等多个子系统。充分测试对于保证 Daemon 可靠性至关重要，尤其是跨平台（Windows Named Pipe / Unix Socket）差异。
+MemorusDaemon 是 Memorus 中最复杂的单体组件（8pt），涉及进程管理、IPC 通信、Session 生命周期、空闲超时等多个子系统。充分测试对于保证 Daemon 可靠性至关重要，尤其是跨平台（Windows Named Pipe / Unix Socket）差异。
 
 ### Scope
 **In scope:**
-- MemXDaemon 启动/关闭生命周期测试
+- MemorusDaemon 启动/关闭生命周期测试
 - IPC 协议全部 6 个命令测试
 - Session 注册/注销管理测试
 - 空闲超时自动退出测试
@@ -51,14 +51,14 @@ MemXDaemon 是 MemX 中最复杂的单体组件（8pt），涉及进程管理、
 - [ ] Client 测试：DaemonClient 6 个方法 mock transport 测试
 - [ ] 降级测试：Daemon 不可用 → DaemonUnavailableError → Memory 降级到直接模式
 - [ ] 恢复测试：Daemon 恢复 → Memory 切回 IPC 模式
-- [ ] 覆盖率 > 85%（`memx/daemon/`）
+- [ ] 覆盖率 > 85%（`memorus/daemon/`）
 
 ---
 
 ## Technical Notes
 
 ### Test Files
-- `tests/unit/test_daemon_server.py` — MemXDaemon 服务端测试
+- `tests/unit/test_daemon_server.py` — MemorusDaemon 服务端测试
 - `tests/unit/test_daemon_client.py` — DaemonClient 测试
 - `tests/unit/test_ipc_transport.py` — IPCTransport 测试
 - `tests/unit/test_daemon_degradation.py` — 降级逻辑测试
@@ -81,7 +81,7 @@ class MockTransport(IPCTransport):
 @pytest.mark.asyncio
 async def test_daemon_lifecycle():
     config = DaemonConfig(idle_timeout_seconds=1)
-    daemon = MemXDaemon(config)
+    daemon = MemorusDaemon(config)
     # Start in-process (skip real IPC binding)
     assert daemon._sessions == {}
 
@@ -111,8 +111,8 @@ def test_stale_pid_cleanup(tmp_path):
 - Mock Named Pipe 操作在 Linux CI 上
 
 ### Dependencies on Existing Code
-- `memx/daemon/` — 全部 STORY-037/038/039 实现
-- `memx/memory.py` — 降级逻辑集成
+- `memorus/daemon/` — 全部 STORY-037/038/039 实现
+- `memorus/memory.py` — 降级逻辑集成
 
 ---
 
@@ -121,7 +121,7 @@ def test_stale_pid_cleanup(tmp_path):
 **Prerequisite Stories:**
 - STORY-039: Daemon 降级逻辑
 - STORY-038: DaemonClient + IPC Transport
-- STORY-037: MemXDaemon 服务端
+- STORY-037: MemorusDaemon 服务端
 
 **Blocked Stories:**
 - None

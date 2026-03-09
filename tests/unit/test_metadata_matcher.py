@@ -1,8 +1,8 @@
-"""Unit tests for memx.engines.generator.metadata_matcher -- MetadataMatcher (L3)."""
+"""Unit tests for memorus.engines.generator.metadata_matcher -- MetadataMatcher (L3)."""
 
 from __future__ import annotations
 
-from memx.core.engines.generator.metadata_matcher import (
+from memorus.core.engines.generator.metadata_matcher import (
     MatchResult,
     MetadataInfo,
     MetadataMatcher,

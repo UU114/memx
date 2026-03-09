@@ -16,20 +16,20 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from memx.team.cache_storage import TeamCacheStorage
-from memx.team.config import AutoNominateConfig, RedactorConfig, TeamConfig
-from memx.team.merger import LayerBoostConfig, MultiPoolRetriever
-from memx.team.nominator import Nominator
-from memx.team.redactor import Redactor
-from memx.team.sync_client import (
+from memorus.team.cache_storage import TeamCacheStorage
+from memorus.team.config import AutoNominateConfig, RedactorConfig, TeamConfig
+from memorus.team.merger import LayerBoostConfig, MultiPoolRetriever
+from memorus.team.nominator import Nominator
+from memorus.team.redactor import Redactor
+from memorus.team.sync_client import (
     BulletIndexEntry,
     IndexResponse,
     NominateResponse,
     SyncConnectionError,
 )
-from memx.team.sync_manager import SyncManager
-from memx.team.tombstone import TombstoneManager
-from memx.team.types import TeamBullet
+from memorus.team.sync_manager import SyncManager
+from memorus.team.tombstone import TombstoneManager
+from memorus.team.types import TeamBullet
 
 
 # ---------------------------------------------------------------------------

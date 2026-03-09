@@ -10,8 +10,8 @@ from typing import Any
 
 import pytest
 
-from memx.core.engines.curator.engine import CuratorEngine, ExistingBullet
-from memx.core.types import CandidateBullet
+from memorus.core.engines.curator.engine import CuratorEngine, ExistingBullet
+from memorus.core.types import CandidateBullet
 
 # Threshold in seconds (10 ms).  Doubled to 20 ms as safety margin —
 # see STORY-045 note on adaptive thresholds.

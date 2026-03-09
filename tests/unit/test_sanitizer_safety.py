@@ -6,10 +6,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from memx.core.config import MemXConfig, PrivacyConfig
-from memx.core.memory import Memory
-from memx.core.pipeline.ingest import IngestPipeline
-from memx.core.privacy.sanitizer import PrivacySanitizer
+from memorus.core.config import MemorusConfig, PrivacyConfig
+from memorus.core.memory import Memory
+from memorus.core.pipeline.ingest import IngestPipeline
+from memorus.core.privacy.sanitizer import PrivacySanitizer
 
 
 class TestIngestPipelineSanitizerIndependence:
@@ -105,7 +105,7 @@ class TestMemoryAlwaysSanitize:
     def _make_memory(self):
         def factory(ace_enabled=False, always_sanitize=False):
             m = Memory.__new__(Memory)
-            m._config = MemXConfig.from_dict({
+            m._config = MemorusConfig.from_dict({
                 "ace_enabled": ace_enabled,
                 "privacy": {"always_sanitize": always_sanitize},
             })

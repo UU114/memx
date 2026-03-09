@@ -34,7 +34,7 @@ Thumbs.db
 # ONNX models
 *.onnx
 
-# Non-memx project files
+# Non-memorus project files
 mem0/
 bmad/
 doc/

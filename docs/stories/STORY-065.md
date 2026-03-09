@@ -58,8 +58,8 @@ So that I only get relevant team knowledge
 ## Technical Notes
 
 ### Components
-- **File:** `memx/team/cache_storage.py`（订阅变更检测）
-- **File:** `memx/team/sync_client.py`（tags 参数传递）
+- **File:** `memorus/team/cache_storage.py`（订阅变更检测）
+- **File:** `memorus/team/sync_client.py`（tags 参数传递）
 
 ### Implementation
 ```python

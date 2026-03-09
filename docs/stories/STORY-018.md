@@ -81,7 +81,7 @@ def get_merge_strategy(name: str) -> MergeStrategy:
 ```
 
 ### Components
-- `memx/engines/curator/merger.py`
+- `memorus/engines/curator/merger.py`
 
 ### Edge Cases
 - 两条 content 完全相同 → keep_best 保留现有
@@ -103,7 +103,7 @@ def get_merge_strategy(name: str) -> MergeStrategy:
 
 ## Definition of Done
 
-- [ ] `memx/engines/curator/merger.py` 实现 KeepBestStrategy 和 MergeContentStrategy
+- [ ] `memorus/engines/curator/merger.py` 实现 KeepBestStrategy 和 MergeContentStrategy
 - [ ] Strategy pattern 可扩展
 - [ ] 单元测试覆盖两种策略的核心路径
 - [ ] mypy --strict 通过

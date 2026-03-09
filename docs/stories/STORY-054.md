@@ -41,7 +41,7 @@ Git Fallback 是 Team Memory 的零配置方案。团队知识以 `.ace/playbook
 
 ### User Flow
 1. 开发者 `git clone` 一个包含 `.ace/playbook.jsonl` 的仓库
-2. MemX 初始化时自动检测到文件
+2. Memorus 初始化时自动检测到文件
 3. search 结果中自动包含 Git Fallback 的团队知识
 4. 开发者无需任何配置
 
@@ -63,7 +63,7 @@ Git Fallback 是 Team Memory 的零配置方案。团队知识以 `.ace/playbook
 ## Technical Notes
 
 ### Components
-- `memx/team/git_storage.py` — GitFallbackStorage 实现
+- `memorus/team/git_storage.py` — GitFallbackStorage 实现
 
 ### JSONL Format
 
@@ -76,11 +76,11 @@ Git Fallback 是 Team Memory 的零配置方案。团队知识以 `.ace/playbook
 ### Implementation Sketch
 
 ```python
-# memx/team/git_storage.py
+# memorus/team/git_storage.py
 from pathlib import Path
 import json
 import logging
-from memx.team.types import TeamBullet
+from memorus.team.types import TeamBullet
 
 logger = logging.getLogger(__name__)
 
@@ -167,7 +167,7 @@ class GitFallbackStorage:
 ## Dependencies
 
 **Prerequisite Stories:**
-- STORY-048: 重构 memx/ → memx/core/（Team 目录结构）
+- STORY-048: 重构 memorus/ → memorus/core/（Team 目录结构）
 - STORY-050: TeamBullet 数据模型（隐含依赖 STORY-051）
 
 **Blocked Stories:**

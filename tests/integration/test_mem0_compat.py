@@ -1,4 +1,4 @@
-"""mem0 API compatibility tests — verify memx.Memory is a drop-in replacement."""
+"""mem0 API compatibility tests — verify memorus.Memory is a drop-in replacement."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from memx.core.config import MemXConfig
-from memx.core.memory import Memory
+from memorus.core.config import MemorusConfig
+from memorus.core.memory import Memory
 
 
 @pytest.fixture()
@@ -65,7 +65,7 @@ def mem0_mock() -> MagicMock:
 def memory(mem0_mock: MagicMock) -> Memory:
     """Create a Memory in proxy mode (ace_enabled=False) with mocked mem0."""
     m = Memory.__new__(Memory)
-    m._config = MemXConfig()  # ace_enabled=False by default
+    m._config = MemorusConfig()  # ace_enabled=False by default
     m._mem0 = mem0_mock
     m._mem0_init_error = None
     m._ingest_pipeline = None
@@ -239,7 +239,7 @@ class TestConfigCompat:
             "llm": {"provider": "openai", "config": {"model": "gpt-4"}},
         }
         m = Memory.__new__(Memory)
-        m._config = MemXConfig.from_dict(config)
+        m._config = MemorusConfig.from_dict(config)
         assert m._config.mem0_config["vector_store"]["provider"] == "qdrant"
         assert m._config.mem0_config["llm"]["provider"] == "openai"
 
@@ -250,14 +250,14 @@ class TestConfigCompat:
             "vector_store": {"provider": "qdrant"},
         }
         m = Memory.__new__(Memory)
-        m._config = MemXConfig.from_dict(config)
+        m._config = MemorusConfig.from_dict(config)
         assert m._config.ace_enabled is True
         assert m._config.mem0_config["vector_store"]["provider"] == "qdrant"
 
     def test_default_config(self) -> None:
         """Empty config works (ace_enabled=False by default)."""
         m = Memory.__new__(Memory)
-        m._config = MemXConfig.from_dict({})
+        m._config = MemorusConfig.from_dict({})
         assert m._config.ace_enabled is False
 
 

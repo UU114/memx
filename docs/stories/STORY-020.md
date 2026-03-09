@@ -21,7 +21,7 @@ So that my context stays relevant and the Playbook doesn't grow unbounded
 ## Description
 
 ### Background
-MemX 的记忆需要随时间自然衰退，类似人类遗忘曲线。长期不被召回的记忆应逐渐降低权重，最终归档。同时，高频召回的记忆应被永久保留。DecayEngine 是实现这一生命周期管理的核心模块。
+Memorus 的记忆需要随时间自然衰退，类似人类遗忘曲线。长期不被召回的记忆应逐渐降低权重，最终归档。同时，高频召回的记忆应被永久保留。DecayEngine 是实现这一生命周期管理的核心模块。
 
 ### Scope
 **In scope:**
@@ -63,8 +63,8 @@ MemX 的记忆需要随时间自然衰退，类似人类遗忘曲线。长期不
 ## Technical Notes
 
 ### Components
-- `memx/engines/decay/formulas.py` — 纯函数衰退公式
-- `memx/engines/decay/engine.py` — DecayEngine 类
+- `memorus/engines/decay/formulas.py` — 纯函数衰退公式
+- `memorus/engines/decay/engine.py` — DecayEngine 类
 
 ### API Design
 
@@ -96,8 +96,8 @@ class DecayEngine:
 ```
 
 ### Dependencies on Existing Code
-- `memx/config.py:DecayConfig` — 已定义，含 half_life_days, boost_factor, protection_days, permanent_threshold, archive_threshold
-- `memx/types.py:BulletMetadata` — decay_weight, recall_count, last_recall, created_at 字段已定义
+- `memorus/config.py:DecayConfig` — 已定义，含 half_life_days, boost_factor, protection_days, permanent_threshold, archive_threshold
+- `memorus/types.py:BulletMetadata` — decay_weight, recall_count, last_recall, created_at 字段已定义
 
 ### Edge Cases
 - age_days = 0（刚创建）→ weight = 1.0
@@ -112,7 +112,7 @@ class DecayEngine:
 
 **Prerequisite Stories:**
 - STORY-001: BulletMetadata 模型 ✓（已完成）
-- STORY-003: MemXConfig / DecayConfig ✓（已完成）
+- STORY-003: MemorusConfig / DecayConfig ✓（已完成）
 
 **Blocked Stories:**
 - STORY-021: Decay sweep + reinforce（依赖本 story 的 compute_weight）
@@ -122,8 +122,8 @@ class DecayEngine:
 
 ## Definition of Done
 
-- [ ] `memx/engines/decay/formulas.py` 实现纯函数衰退公式
-- [ ] `memx/engines/decay/engine.py` 实现 DecayEngine.compute_weight()
+- [ ] `memorus/engines/decay/formulas.py` 实现纯函数衰退公式
+- [ ] `memorus/engines/decay/engine.py` 实现 DecayEngine.compute_weight()
 - [ ] 单元测试覆盖全部 acceptance criteria
 - [ ] mypy --strict 通过
 - [ ] ruff check 通过

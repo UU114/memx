@@ -17,12 +17,12 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from datetime import datetime, timedelta, timezone
 
 from examples._mock_backend import create_mock_memory
-from memx.config import DecayConfig, RetrievalConfig
-from memx.engines.decay.engine import BulletDecayInfo, DecayEngine
-from memx.engines.generator.engine import BulletForSearch, GeneratorEngine
-from memx.engines.generator.metadata_matcher import MetadataInfo
-from memx.engines.reflector.engine import ReflectorEngine
-from memx.types import InteractionEvent
+from memorus.config import DecayConfig, RetrievalConfig
+from memorus.engines.decay.engine import BulletDecayInfo, DecayEngine
+from memorus.engines.generator.engine import BulletForSearch, GeneratorEngine
+from memorus.engines.generator.metadata_matcher import MetadataInfo
+from memorus.engines.reflector.engine import ReflectorEngine
+from memorus.types import InteractionEvent
 
 logger = logging.getLogger(__name__)
 
@@ -86,12 +86,12 @@ def main() -> None:
     # Store in mock memory
     for b in all_bullets:
         mem.add(b.content, user_id="dev1", metadata={
-            "memx_section": b.section.value,
-            "memx_knowledge_type": b.knowledge_type.value,
-            "memx_instructivity_score": b.instructivity_score,
-            "memx_related_tools": str(b.related_tools),
-            "memx_scope": "project:onboarding",
-            "memx_decay_weight": 1.0,
+            "memorus_section": b.section.value,
+            "memorus_knowledge_type": b.knowledge_type.value,
+            "memorus_instructivity_score": b.instructivity_score,
+            "memorus_related_tools": str(b.related_tools),
+            "memorus_scope": "project:onboarding",
+            "memorus_decay_weight": 1.0,
         })
 
     # ═════ Phase 2: Retrieve — Hybrid search ═════════════════════════
@@ -103,7 +103,7 @@ def main() -> None:
     raw = mem.get_all(user_id="dev1")
     for entry in raw.get("results", []):
         meta = entry.get("metadata", {})
-        tools_str = meta.get("memx_related_tools", "[]")
+        tools_str = meta.get("memorus_related_tools", "[]")
         tools = []
         if isinstance(tools_str, str) and tools_str.startswith("["):
             try:
@@ -117,11 +117,11 @@ def main() -> None:
             content=entry["memory"],
             metadata=MetadataInfo(
                 related_tools=tools,
-                tags=[meta.get("memx_section", "general")],
+                tags=[meta.get("memorus_section", "general")],
             ),
             created_at=NOW,
-            decay_weight=float(meta.get("memx_decay_weight", 1.0)),
-            scope=meta.get("memx_scope", "global"),
+            decay_weight=float(meta.get("memorus_decay_weight", 1.0)),
+            scope=meta.get("memorus_scope", "global"),
         ))
 
     gen_engine = GeneratorEngine(config=RetrievalConfig(keyword_weight=0.8, semantic_weight=0.2))

@@ -1,16 +1,16 @@
-"""Demo 10: Config Showcase — MemXConfig key separation + validation + defaults."""
+"""Demo 10: Config Showcase — MemorusConfig key separation + validation + defaults."""
 
 import sys
 import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from memx.config import (
+from memorus.config import (
     CuratorConfig,
     DaemonConfig,
     DecayConfig,
     IntegrationConfig,
-    MemXConfig,
+    MemorusConfig,
     PrivacyConfig,
     ReflectorConfig,
     RetrievalConfig,
@@ -19,7 +19,7 @@ from memx.config import (
 
 def main() -> None:
     # --- 1. Default config ---
-    cfg = MemXConfig()
+    cfg = MemorusConfig()
     assert cfg.ace_enabled is False
     assert cfg.reflector.mode == "rules"
     assert cfg.curator.similarity_threshold == 0.8
@@ -45,7 +45,7 @@ def main() -> None:
         "vector_store": {"provider": "chroma"},
     }
 
-    cfg2 = MemXConfig.from_dict(mixed_config)
+    cfg2 = MemorusConfig.from_dict(mixed_config)
     assert cfg2.ace_enabled is True
     assert cfg2.reflector.min_score == 25.0
     assert cfg2.curator.conflict_detection is True
@@ -103,7 +103,7 @@ def main() -> None:
         "retrieval": {"keyword_weight": 0.7, "semantic_weight": 0.3, "max_results": 10},
         "integration": {"context_template": "markdown"},
     }
-    cfg3 = MemXConfig.from_dict(full_config)
+    cfg3 = MemorusConfig.from_dict(full_config)
     assert cfg3.reflector.min_score == 40.0
     assert cfg3.retrieval.keyword_weight == 0.7
     assert cfg3.retrieval.max_results == 10

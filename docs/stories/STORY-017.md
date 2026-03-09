@@ -12,7 +12,7 @@
 
 ## User Story
 
-As a MemX system
+As a Memorus system
 I want duplicate memories automatically detected
 So that the Playbook stays clean and compact
 
@@ -94,7 +94,7 @@ class CuratorEngine:
 ```
 
 ### Components
-- `memx/engines/curator/engine.py`
+- `memorus/engines/curator/engine.py`
 
 ### Similarity Strategies
 1. **Primary**: cosine similarity on embedding vectors（当向量可用时）
@@ -122,7 +122,7 @@ class CuratorEngine:
 
 ## Definition of Done
 
-- [ ] `memx/engines/curator/engine.py` 实现 CuratorEngine
+- [ ] `memorus/engines/curator/engine.py` 实现 CuratorEngine
 - [ ] cosine_similarity 和 text_similarity 函数实现
 - [ ] CurateResult 数据结构完整
 - [ ] 基础单元测试通过

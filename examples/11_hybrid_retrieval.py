@@ -16,11 +16,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from datetime import datetime, timezone
 
-from memx.config import RetrievalConfig
-from memx.engines.generator.engine import BulletForSearch, GeneratorEngine
-from memx.engines.generator.exact_matcher import ExactMatcher
-from memx.engines.generator.fuzzy_matcher import FuzzyMatcher
-from memx.engines.generator.metadata_matcher import MetadataInfo, MetadataMatcher
+from memorus.config import RetrievalConfig
+from memorus.engines.generator.engine import BulletForSearch, GeneratorEngine
+from memorus.engines.generator.exact_matcher import ExactMatcher
+from memorus.engines.generator.fuzzy_matcher import FuzzyMatcher
+from memorus.engines.generator.metadata_matcher import MetadataInfo, MetadataMatcher
 
 logger = logging.getLogger(__name__)
 

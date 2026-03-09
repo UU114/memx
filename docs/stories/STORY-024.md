@@ -58,7 +58,7 @@ class FuzzyMatcher:
     def match(self, query: str, content: str) -> MatchResult: ...
     def match_batch(self, query: str, contents: list[str]) -> list[MatchResult]: ...
 
-# memx/utils/text_processing.py
+# memorus/utils/text_processing.py
 def tokenize_chinese(text: str) -> list[str]:
     """Split Chinese text into 2-grams."""
 
@@ -70,8 +70,8 @@ def extract_tokens(text: str) -> list[str]:
 ```
 
 ### Components
-- `memx/engines/generator/fuzzy_matcher.py`
-- `memx/utils/text_processing.py` — 文本处理工具函数
+- `memorus/engines/generator/fuzzy_matcher.py`
+- `memorus/utils/text_processing.py` — 文本处理工具函数
 
 ### Implementation Notes
 - 英文词干化：简化版后缀剥离（-ing, -ed, -s, -tion→-te, -ly）
@@ -92,8 +92,8 @@ def extract_tokens(text: str) -> list[str]:
 
 ## Definition of Done
 
-- [ ] `memx/engines/generator/fuzzy_matcher.py` 实现
-- [ ] `memx/utils/text_processing.py` 文本处理工具实现
+- [ ] `memorus/engines/generator/fuzzy_matcher.py` 实现
+- [ ] `memorus/utils/text_processing.py` 文本处理工具实现
 - [ ] 中英文模糊匹配测试
 - [ ] mypy --strict 通过
 - [ ] ruff check 通过

@@ -1,4 +1,4 @@
-"""Unit tests for memx.pipeline.ingest — IngestPipeline."""
+"""Unit tests for memorus.pipeline.ingest — IngestPipeline."""
 
 from __future__ import annotations
 
@@ -6,18 +6,18 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
-from memx.core.config import ReflectorConfig
-from memx.core.engines.reflector.engine import ReflectorEngine
-from memx.core.pipeline.ingest import IngestPipeline, IngestResult
-from memx.core.privacy.sanitizer import PrivacySanitizer, SanitizeResult
-from memx.core.types import (
+from memorus.core.config import ReflectorConfig
+from memorus.core.engines.reflector.engine import ReflectorEngine
+from memorus.core.pipeline.ingest import IngestPipeline, IngestResult
+from memorus.core.privacy.sanitizer import PrivacySanitizer, SanitizeResult
+from memorus.core.types import (
     BulletSection,
     CandidateBullet,
     InteractionEvent,
     KnowledgeType,
     SourceType,
 )
-from memx.core.utils.bullet_factory import MEMX_PREFIX
+from memorus.core.utils.bullet_factory import MEMORUS_PREFIX
 
 
 # ---------------------------------------------------------------------------
@@ -405,11 +405,11 @@ class TestMem0AddCalled:
         assert call_args[1]["agent_id"] == "a1"
         assert call_args[1]["run_id"] == "r1"
 
-        # Merged metadata should contain both app key and memx_ prefixed keys
+        # Merged metadata should contain both app key and memorus_ prefixed keys
         meta = call_args[1]["metadata"]
         assert meta["app"] == "myapp"
-        assert f"{MEMX_PREFIX}section" in meta
-        assert f"{MEMX_PREFIX}knowledge_type" in meta
+        assert f"{MEMORUS_PREFIX}section" in meta
+        assert f"{MEMORUS_PREFIX}knowledge_type" in meta
 
 
 # ---------------------------------------------------------------------------
@@ -475,15 +475,15 @@ class TestNoMem0AddFn:
 
 
 # ---------------------------------------------------------------------------
-# Test 12: Bullet metadata with memx_ prefix in mem0 call
+# Test 12: Bullet metadata with memorus_ prefix in mem0 call
 # ---------------------------------------------------------------------------
 
 
 class TestBulletMetadataInMem0:
-    """Verify memx_ prefixed metadata is correctly included in mem0 call."""
+    """Verify memorus_ prefixed metadata is correctly included in mem0 call."""
 
     def test_bullet_metadata_in_mem0(self) -> None:
-        """Bullet fields appear as memx_-prefixed keys in merged metadata."""
+        """Bullet fields appear as memorus_-prefixed keys in merged metadata."""
         candidate = _make_candidate(
             content="fix content",
             section=BulletSection.DEBUGGING,
@@ -504,19 +504,19 @@ class TestBulletMetadataInMem0:
         assert result.bullets_added == 1
         meta = mem0_add.call_args[1]["metadata"]
 
-        # Check memx_ prefixed fields
-        assert meta[f"{MEMX_PREFIX}section"] == "debugging"
-        assert meta[f"{MEMX_PREFIX}knowledge_type"] == "pitfall"
-        assert meta[f"{MEMX_PREFIX}instructivity_score"] == 72.0
-        assert meta[f"{MEMX_PREFIX}source_type"] == "interaction"
-        assert meta[f"{MEMX_PREFIX}scope"] == "global"
+        # Check memorus_ prefixed fields
+        assert meta[f"{MEMORUS_PREFIX}section"] == "debugging"
+        assert meta[f"{MEMORUS_PREFIX}knowledge_type"] == "pitfall"
+        assert meta[f"{MEMORUS_PREFIX}instructivity_score"] == 72.0
+        assert meta[f"{MEMORUS_PREFIX}source_type"] == "interaction"
+        assert meta[f"{MEMORUS_PREFIX}scope"] == "global"
 
         # Check list fields are JSON-serialised strings
         import json
 
-        assert json.loads(meta[f"{MEMX_PREFIX}related_tools"]) == ["rustup"]
-        assert json.loads(meta[f"{MEMX_PREFIX}key_entities"]) == ["rust", "cargo"]
-        assert json.loads(meta[f"{MEMX_PREFIX}tags"]) == ["error-fix"]
+        assert json.loads(meta[f"{MEMORUS_PREFIX}related_tools"]) == ["rustup"]
+        assert json.loads(meta[f"{MEMORUS_PREFIX}key_entities"]) == ["rust", "cargo"]
+        assert json.loads(meta[f"{MEMORUS_PREFIX}tags"]) == ["error-fix"]
 
         # User metadata should also be present
         assert meta["env"] == "prod"
@@ -613,11 +613,11 @@ class TestMemoryAddACEPath:
 
     def test_memory_add_ace_path(self) -> None:
         """ACE enabled + pipeline exists -> returns ace_ingest dict."""
-        from memx.core.config import MemXConfig
-        from memx.core.memory import Memory
+        from memorus.core.config import MemorusConfig
+        from memorus.core.memory import Memory
 
         m = Memory.__new__(Memory)
-        m._config = MemXConfig(ace_enabled=True)
+        m._config = MemorusConfig(ace_enabled=True)
         m._mem0 = MagicMock()
         m._mem0_init_error = None
         m._retrieval_pipeline = None
@@ -641,11 +641,11 @@ class TestMemoryAddACEPath:
 
     def test_memory_add_ace_no_pipeline_falls_back(self) -> None:
         """ACE enabled but pipeline is None -> falls back to proxy."""
-        from memx.core.config import MemXConfig
-        from memx.core.memory import Memory
+        from memorus.core.config import MemorusConfig
+        from memorus.core.memory import Memory
 
         m = Memory.__new__(Memory)
-        m._config = MemXConfig(ace_enabled=True)
+        m._config = MemorusConfig(ace_enabled=True)
         m._mem0 = MagicMock()
         m._mem0.add.return_value = {"results": []}
         m._mem0_init_error = None

@@ -76,7 +76,7 @@ class VectorSearcher:
 ```
 
 ### Components
-- `memx/engines/generator/vector_searcher.py`
+- `memorus/engines/generator/vector_searcher.py`
 
 ### Implementation Notes
 - search_fn 是一个回调，由 Memory 层注入（封装 mem0 的 search）
@@ -88,7 +88,7 @@ class VectorSearcher:
 ## Dependencies
 
 **Prerequisite Stories:**
-- STORY-004: MemXMemory Decorator ✓
+- STORY-004: MemorusMemory Decorator ✓
 
 **Blocked Stories:**
 - STORY-027: ScoreMerger
@@ -97,7 +97,7 @@ class VectorSearcher:
 
 ## Definition of Done
 
-- [ ] `memx/engines/generator/vector_searcher.py` 实现
+- [ ] `memorus/engines/generator/vector_searcher.py` 实现
 - [ ] 正常路径 + 降级路径测试
 - [ ] mypy --strict 通过
 - [ ] ruff check 通过

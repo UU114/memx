@@ -1,12 +1,12 @@
-"""Unit tests for memx.utils.bullet_factory — BulletFactory."""
+"""Unit tests for memorus.utils.bullet_factory — BulletFactory."""
 
 from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
 
-from memx.core.types import BulletMetadata, BulletSection, KnowledgeType, SourceType
-from memx.core.utils.bullet_factory import MEMX_PREFIX, BulletFactory
+from memorus.core.types import BulletMetadata, BulletSection, KnowledgeType, SourceType
+from memorus.core.utils.bullet_factory import MEMORUS_PREFIX, BulletFactory
 
 # ── BulletFactory.create ──────────────────────────────────────────────
 
@@ -47,7 +47,7 @@ class TestToMem0Metadata:
         meta = BulletMetadata()
         result = BulletFactory.to_mem0_metadata(meta)
         for key in result:
-            assert key.startswith(MEMX_PREFIX), f"key {key!r} missing prefix"
+            assert key.startswith(MEMORUS_PREFIX), f"key {key!r} missing prefix"
 
     def test_enum_serialised_as_string(self) -> None:
         meta = BulletMetadata(
@@ -55,14 +55,14 @@ class TestToMem0Metadata:
             knowledge_type=KnowledgeType.PITFALL,
         )
         result = BulletFactory.to_mem0_metadata(meta)
-        assert result["memx_section"] == "debugging"
-        assert result["memx_knowledge_type"] == "pitfall"
+        assert result["memorus_section"] == "debugging"
+        assert result["memorus_knowledge_type"] == "pitfall"
 
     def test_datetime_serialised_as_iso_string(self) -> None:
         ts = datetime(2026, 3, 15, 14, 30, tzinfo=timezone.utc)
         meta = BulletMetadata(created_at=ts)
         result = BulletFactory.to_mem0_metadata(meta)
-        assert "2026-03-15" in result["memx_created_at"]
+        assert "2026-03-15" in result["memorus_created_at"]
 
     def test_list_fields_serialised_as_json_string(self) -> None:
         meta = BulletMetadata(
@@ -70,15 +70,15 @@ class TestToMem0Metadata:
             tags=["rust", "async"],
         )
         result = BulletFactory.to_mem0_metadata(meta)
-        assert isinstance(result["memx_related_tools"], str)
-        assert json.loads(result["memx_related_tools"]) == ["cargo", "rustc"]
-        assert isinstance(result["memx_tags"], str)
-        assert json.loads(result["memx_tags"]) == ["rust", "async"]
+        assert isinstance(result["memorus_related_tools"], str)
+        assert json.loads(result["memorus_related_tools"]) == ["cargo", "rustc"]
+        assert isinstance(result["memorus_tags"], str)
+        assert json.loads(result["memorus_tags"]) == ["rust", "async"]
 
     def test_none_last_recall(self) -> None:
         meta = BulletMetadata(last_recall=None)
         result = BulletFactory.to_mem0_metadata(meta)
-        assert result["memx_last_recall"] is None
+        assert result["memorus_last_recall"] is None
 
     def test_numeric_fields(self) -> None:
         meta = BulletMetadata(
@@ -87,26 +87,26 @@ class TestToMem0Metadata:
             decay_weight=0.85,
         )
         result = BulletFactory.to_mem0_metadata(meta)
-        assert result["memx_instructivity_score"] == 75.0
-        assert result["memx_recall_count"] == 3
-        assert result["memx_decay_weight"] == 0.85
+        assert result["memorus_instructivity_score"] == 75.0
+        assert result["memorus_recall_count"] == 3
+        assert result["memorus_decay_weight"] == 0.85
 
     def test_schema_version_serialised(self) -> None:
         meta = BulletMetadata(schema_version=2)
         result = BulletFactory.to_mem0_metadata(meta)
-        assert result["memx_schema_version"] == 2
+        assert result["memorus_schema_version"] == 2
 
     def test_incompatible_tags_serialised_as_json_string(self) -> None:
         meta = BulletMetadata(incompatible_tags=["v2-only", "team-ext"])
         result = BulletFactory.to_mem0_metadata(meta)
-        assert isinstance(result["memx_incompatible_tags"], str)
-        assert json.loads(result["memx_incompatible_tags"]) == ["v2-only", "team-ext"]
+        assert isinstance(result["memorus_incompatible_tags"], str)
+        assert json.loads(result["memorus_incompatible_tags"]) == ["v2-only", "team-ext"]
 
     def test_default_schema_version_and_incompatible_tags(self) -> None:
         meta = BulletMetadata()
         result = BulletFactory.to_mem0_metadata(meta)
-        assert result["memx_schema_version"] == 1
-        assert json.loads(result["memx_incompatible_tags"]) == []
+        assert result["memorus_schema_version"] == 1
+        assert json.loads(result["memorus_incompatible_tags"]) == []
 
 
 # ── BulletFactory.from_mem0_payload ───────────────────────────────────
@@ -153,12 +153,12 @@ class TestFromMem0Payload:
         assert restored.source_type == original.source_type
         assert restored.scope == original.scope
 
-    def test_non_memx_keys_are_ignored(self) -> None:
+    def test_non_memorus_keys_are_ignored(self) -> None:
         payload = {
             "metadata": {
                 "user_id": "alice",
                 "custom_key": 42,
-                "memx_section": "tools",
+                "memorus_section": "tools",
             }
         }
         meta = BulletFactory.from_mem0_payload(payload)
@@ -168,8 +168,8 @@ class TestFromMem0Payload:
     def test_partial_fields_use_defaults(self) -> None:
         payload = {
             "metadata": {
-                "memx_section": "commands",
-                "memx_instructivity_score": 90.0,
+                "memorus_section": "commands",
+                "memorus_instructivity_score": 90.0,
             }
         }
         meta = BulletFactory.from_mem0_payload(payload)
@@ -183,8 +183,8 @@ class TestFromMem0Payload:
     def test_list_field_as_json_string(self) -> None:
         payload = {
             "metadata": {
-                "memx_related_tools": '["git", "npm"]',
-                "memx_tags": '["js"]',
+                "memorus_related_tools": '["git", "npm"]',
+                "memorus_tags": '["js"]',
             }
         }
         meta = BulletFactory.from_mem0_payload(payload)
@@ -195,7 +195,7 @@ class TestFromMem0Payload:
         """If mem0 returns lists natively (not JSON string), still works."""
         payload = {
             "metadata": {
-                "memx_related_tools": ["git", "npm"],
+                "memorus_related_tools": ["git", "npm"],
             }
         }
         meta = BulletFactory.from_mem0_payload(payload)
@@ -204,7 +204,7 @@ class TestFromMem0Payload:
     def test_list_field_invalid_json_falls_back_to_empty(self) -> None:
         payload = {
             "metadata": {
-                "memx_tags": "not-valid-json{",
+                "memorus_tags": "not-valid-json{",
             }
         }
         meta = BulletFactory.from_mem0_payload(payload)
@@ -214,7 +214,7 @@ class TestFromMem0Payload:
         """Pydantic should coerce '75' to 75.0 for float fields."""
         payload = {
             "metadata": {
-                "memx_instructivity_score": "75",
+                "memorus_instructivity_score": "75",
             }
         }
         meta = BulletFactory.from_mem0_payload(payload)
@@ -238,8 +238,8 @@ class TestFromMem0Payload:
         """Old payloads without schema_version/incompatible_tags get defaults."""
         payload = {
             "metadata": {
-                "memx_section": "general",
-                "memx_instructivity_score": 50.0,
+                "memorus_section": "general",
+                "memorus_instructivity_score": 50.0,
             }
         }
         meta = BulletFactory.from_mem0_payload(payload)
@@ -262,7 +262,7 @@ class TestFromMem0Payload:
         """If mem0 returns lists natively, still works."""
         payload = {
             "metadata": {
-                "memx_incompatible_tags": ["a", "b"],
+                "memorus_incompatible_tags": ["a", "b"],
             }
         }
         meta = BulletFactory.from_mem0_payload(payload)

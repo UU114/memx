@@ -1,4 +1,4 @@
-"""Unit tests for memx.cli.main — CLI commands (status + search + learn + list + forget + sweep)."""
+"""Unit tests for memorus.cli.main — CLI commands (status + search + learn + list + forget + sweep)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import pytest
 from click.testing import CliRunner
 from unittest.mock import MagicMock, patch
 
-from memx.core.cli.main import cli
+from memorus.core.cli.main import cli
 
 
 # ---------------------------------------------------------------------------
@@ -39,7 +39,7 @@ def mock_memory() -> MagicMock:
 
 def _patch_create_memory(mock_memory: MagicMock):
     """Patch _create_memory to return the mock."""
-    return patch("memx.core.cli.main._create_memory", return_value=mock_memory)
+    return patch("memorus.core.cli.main._create_memory", return_value=mock_memory)
 
 
 # ---------------------------------------------------------------------------
@@ -62,8 +62,8 @@ SAMPLE_SEARCH_RESULTS = {
             "memory": "When using asyncio, always wrap with try/except for CancelledError",
             "score": 0.92,
             "metadata": {
-                "memx_knowledge_type": "method",
-                "memx_tags": '["python", "asyncio"]',
+                "memorus_knowledge_type": "method",
+                "memorus_tags": '["python", "asyncio"]',
             },
         },
         {
@@ -71,8 +71,8 @@ SAMPLE_SEARCH_RESULTS = {
             "memory": "Prefer structured error handling with Result type",
             "score": 0.85,
             "metadata": {
-                "memx_knowledge_type": "preference",
-                "memx_tags": '["error-handling"]',
+                "memorus_knowledge_type": "preference",
+                "memorus_tags": '["error-handling"]',
             },
         },
     ],
@@ -88,16 +88,16 @@ class TestCLIGroup:
     """Tests for the top-level CLI group."""
 
     def test_help(self, runner: CliRunner) -> None:
-        """memx --help shows help text."""
+        """memorus --help shows help text."""
         result = runner.invoke(cli, ["--help"])
         assert result.exit_code == 0
-        assert "MemX" in result.output
+        assert "Memorus" in result.output
 
     def test_version(self, runner: CliRunner) -> None:
-        """memx --version shows the version."""
+        """memorus --version shows the version."""
         result = runner.invoke(cli, ["--version"])
         assert result.exit_code == 0
-        assert "1.0.0" in result.output
+        assert "0.2.1" in result.output
 
 
 # ---------------------------------------------------------------------------
@@ -106,7 +106,7 @@ class TestCLIGroup:
 
 
 class TestStatusCommand:
-    """Tests for `memx status`."""
+    """Tests for `memorus status`."""
 
     def test_status_empty_db(
         self, runner: CliRunner, mock_memory: MagicMock
@@ -182,7 +182,7 @@ class TestStatusCommand:
 
     def test_status_memory_init_failure(self, runner: CliRunner) -> None:
         """Memory initialization failure shows error and exits."""
-        with patch("memx.core.cli.main._create_memory", return_value=None):
+        with patch("memorus.core.cli.main._create_memory", return_value=None):
             result = runner.invoke(cli, ["status"])
         assert result.exit_code != 0
 
@@ -210,7 +210,7 @@ class TestStatusCommand:
 
 
 class TestSearchCommand:
-    """Tests for `memx search`."""
+    """Tests for `memorus search`."""
 
     def test_search_no_results(
         self, runner: CliRunner, mock_memory: MagicMock
@@ -301,7 +301,7 @@ class TestSearchCommand:
 
     def test_search_memory_init_failure(self, runner: CliRunner) -> None:
         """Memory initialization failure shows error and exits."""
-        with patch("memx.core.cli.main._create_memory", return_value=None):
+        with patch("memorus.core.cli.main._create_memory", return_value=None):
             result = runner.invoke(cli, ["search", "query"])
         assert result.exit_code != 0
 
@@ -362,8 +362,8 @@ class TestSearchCommand:
                     "memory": "test result",
                     "score": 0.9,
                     "metadata": {
-                        "memx_knowledge_type": "method",
-                        "memx_tags": ["rust", "async"],
+                        "memorus_knowledge_type": "method",
+                        "memorus_tags": ["rust", "async"],
                     },
                 }
             ]
@@ -405,11 +405,11 @@ class TestMemoryStatus:
 
     def test_status_empty(self) -> None:
         """status() with no memories returns zero counts."""
-        from memx.core.config import MemXConfig
-        from memx.core.memory import Memory
+        from memorus.core.config import MemorusConfig
+        from memorus.core.memory import Memory
 
         m = Memory.__new__(Memory)
-        m._config = MemXConfig()
+        m._config = MemorusConfig()
         m._mem0 = MagicMock()
         m._mem0_init_error = None
         m._mem0.get_all.return_value = {"memories": []}
@@ -426,11 +426,11 @@ class TestMemoryStatus:
 
     def test_status_with_memories(self) -> None:
         """status() computes correct distributions and averages."""
-        from memx.core.config import MemXConfig
-        from memx.core.memory import Memory
+        from memorus.core.config import MemorusConfig
+        from memorus.core.memory import Memory
 
         m = Memory.__new__(Memory)
-        m._config = MemXConfig(ace_enabled=True)
+        m._config = MemorusConfig(ace_enabled=True)
         m._mem0 = MagicMock()
         m._mem0_init_error = None
         m._mem0.get_all.return_value = {
@@ -439,27 +439,27 @@ class TestMemoryStatus:
                     "id": "1",
                     "memory": "rule one",
                     "metadata": {
-                        "memx_section": "commands",
-                        "memx_knowledge_type": "method",
-                        "memx_decay_weight": 0.9,
+                        "memorus_section": "commands",
+                        "memorus_knowledge_type": "method",
+                        "memorus_decay_weight": 0.9,
                     },
                 },
                 {
                     "id": "2",
                     "memory": "rule two",
                     "metadata": {
-                        "memx_section": "commands",
-                        "memx_knowledge_type": "preference",
-                        "memx_decay_weight": 0.8,
+                        "memorus_section": "commands",
+                        "memorus_knowledge_type": "preference",
+                        "memorus_decay_weight": 0.8,
                     },
                 },
                 {
                     "id": "3",
                     "memory": "rule three",
                     "metadata": {
-                        "memx_section": "general",
-                        "memx_knowledge_type": "method",
-                        "memx_decay_weight": 0.7,
+                        "memorus_section": "general",
+                        "memorus_knowledge_type": "method",
+                        "memorus_decay_weight": 0.7,
                     },
                 },
             ]
@@ -477,11 +477,11 @@ class TestMemoryStatus:
 
     def test_status_with_user_id(self) -> None:
         """status(user_id=...) passes user_id to get_all()."""
-        from memx.core.config import MemXConfig
-        from memx.core.memory import Memory
+        from memorus.core.config import MemorusConfig
+        from memorus.core.memory import Memory
 
         m = Memory.__new__(Memory)
-        m._config = MemXConfig()
+        m._config = MemorusConfig()
         m._mem0 = MagicMock()
         m._mem0_init_error = None
         m._mem0.get_all.return_value = {"memories": []}
@@ -493,12 +493,12 @@ class TestMemoryStatus:
         m._mem0.get_all.assert_called_once_with(user_id="alice")
 
     def test_status_missing_metadata_defaults(self) -> None:
-        """Memories without memx_ metadata use defaults."""
-        from memx.core.config import MemXConfig
-        from memx.core.memory import Memory
+        """Memories without memorus_ metadata use defaults."""
+        from memorus.core.config import MemorusConfig
+        from memorus.core.memory import Memory
 
         m = Memory.__new__(Memory)
-        m._config = MemXConfig()
+        m._config = MemorusConfig()
         m._mem0 = MagicMock()
         m._mem0_init_error = None
         m._mem0.get_all.return_value = {
@@ -555,27 +555,27 @@ SAMPLE_ALL_MEMORIES = {
             "id": "abc12345",
             "memory": "User prefers dark mode in all editors",
             "metadata": {
-                "memx_knowledge_type": "preference",
-                "memx_decay_weight": 0.92,
-                "memx_scope": "project:myapp",
+                "memorus_knowledge_type": "preference",
+                "memorus_decay_weight": 0.92,
+                "memorus_scope": "project:myapp",
             },
         },
         {
             "id": "def45678",
             "memory": "pytest -v flag usage for verbose output",
             "metadata": {
-                "memx_knowledge_type": "tool_pattern",
-                "memx_decay_weight": 0.85,
-                "memx_scope": "global",
+                "memorus_knowledge_type": "tool_pattern",
+                "memorus_decay_weight": 0.85,
+                "memorus_scope": "global",
             },
         },
         {
             "id": "ghi78901",
             "memory": "subprocess stderr check pattern",
             "metadata": {
-                "memx_knowledge_type": "error_fix",
-                "memx_decay_weight": 0.71,
-                "memx_scope": "project:myapp",
+                "memorus_knowledge_type": "error_fix",
+                "memorus_decay_weight": 0.71,
+                "memorus_scope": "project:myapp",
             },
         },
     ]
@@ -596,7 +596,7 @@ SAMPLE_SWEEP_RESULT = {
 
 
 class TestLearnCommand:
-    """Tests for `memx learn`."""
+    """Tests for `memorus learn`."""
 
     def test_learn_basic(
         self, runner: CliRunner, mock_memory: MagicMock
@@ -681,7 +681,7 @@ class TestLearnCommand:
 
     def test_learn_memory_init_failure(self, runner: CliRunner) -> None:
         """Memory initialization failure shows error and exits."""
-        with patch("memx.core.cli.main._create_memory", return_value=None):
+        with patch("memorus.core.cli.main._create_memory", return_value=None):
             result = runner.invoke(cli, ["learn", "content"])
         assert result.exit_code != 0
 
@@ -724,7 +724,7 @@ class TestLearnCommand:
 
 
 class TestListCommand:
-    """Tests for `memx list`."""
+    """Tests for `memorus list`."""
 
     def test_list_empty(
         self, runner: CliRunner, mock_memory: MagicMock
@@ -766,7 +766,7 @@ class TestListCommand:
     def test_list_scope_filter(
         self, runner: CliRunner, mock_memory: MagicMock
     ) -> None:
-        """--scope filters memories by memx_scope metadata."""
+        """--scope filters memories by memorus_scope metadata."""
         mock_memory.get_all.return_value = SAMPLE_ALL_MEMORIES
         with _patch_create_memory(mock_memory):
             result = runner.invoke(cli, ["list", "--scope", "project:myapp"])
@@ -841,7 +841,7 @@ class TestListCommand:
 
     def test_list_memory_init_failure(self, runner: CliRunner) -> None:
         """Memory initialization failure shows error and exits."""
-        with patch("memx.core.cli.main._create_memory", return_value=None):
+        with patch("memorus.core.cli.main._create_memory", return_value=None):
             result = runner.invoke(cli, ["list"])
         assert result.exit_code != 0
 
@@ -889,7 +889,7 @@ class TestListCommand:
 
 
 class TestForgetCommand:
-    """Tests for `memx forget`."""
+    """Tests for `memorus forget`."""
 
     def test_forget_with_confirmation(
         self, runner: CliRunner, mock_memory: MagicMock
@@ -981,7 +981,7 @@ class TestForgetCommand:
 
     def test_forget_memory_init_failure(self, runner: CliRunner) -> None:
         """Memory initialization failure shows error and exits."""
-        with patch("memx.core.cli.main._create_memory", return_value=None):
+        with patch("memorus.core.cli.main._create_memory", return_value=None):
             result = runner.invoke(cli, ["forget", "abc123", "--yes"])
         assert result.exit_code != 0
 
@@ -997,7 +997,7 @@ class TestForgetCommand:
 
 
 class TestSweepCommand:
-    """Tests for `memx sweep`."""
+    """Tests for `memorus sweep`."""
 
     def test_sweep_basic(
         self, runner: CliRunner, mock_memory: MagicMock
@@ -1064,7 +1064,7 @@ class TestSweepCommand:
 
     def test_sweep_memory_init_failure(self, runner: CliRunner) -> None:
         """Memory initialization failure shows error and exits."""
-        with patch("memx.core.cli.main._create_memory", return_value=None):
+        with patch("memorus.core.cli.main._create_memory", return_value=None):
             result = runner.invoke(cli, ["sweep"])
         assert result.exit_code != 0
 
@@ -1092,18 +1092,18 @@ class TestHelperFunctions:
 
     def test_apply_filters_scope(self) -> None:
         """_apply_filters filters by scope correctly."""
-        from memx.core.cli.main import _apply_filters
+        from memorus.core.cli.main import _apply_filters
 
         memories = SAMPLE_ALL_MEMORIES["memories"]
         filtered = _apply_filters(memories, scope="project:myapp")
         assert len(filtered) == 2
         assert all(
-            m["metadata"]["memx_scope"] == "project:myapp" for m in filtered
+            m["metadata"]["memorus_scope"] == "project:myapp" for m in filtered
         )
 
     def test_apply_filters_type(self) -> None:
         """_apply_filters filters by knowledge type correctly."""
-        from memx.core.cli.main import _apply_filters
+        from memorus.core.cli.main import _apply_filters
 
         memories = SAMPLE_ALL_MEMORIES["memories"]
         filtered = _apply_filters(memories, knowledge_type="tool_pattern")
@@ -1112,7 +1112,7 @@ class TestHelperFunctions:
 
     def test_apply_filters_both(self) -> None:
         """_apply_filters with both scope and type."""
-        from memx.core.cli.main import _apply_filters
+        from memorus.core.cli.main import _apply_filters
 
         memories = SAMPLE_ALL_MEMORIES["memories"]
         filtered = _apply_filters(
@@ -1123,7 +1123,7 @@ class TestHelperFunctions:
 
     def test_apply_filters_no_match(self) -> None:
         """_apply_filters returns empty list when no match."""
-        from memx.core.cli.main import _apply_filters
+        from memorus.core.cli.main import _apply_filters
 
         memories = SAMPLE_ALL_MEMORIES["memories"]
         filtered = _apply_filters(memories, scope="nonexistent")
@@ -1131,19 +1131,19 @@ class TestHelperFunctions:
 
     def test_parse_tags_json_string(self) -> None:
         """_parse_tags parses JSON string tags."""
-        from memx.core.cli.main import _parse_tags
+        from memorus.core.cli.main import _parse_tags
 
         assert _parse_tags('["a", "b"]') == ["a", "b"]
 
     def test_parse_tags_list(self) -> None:
         """_parse_tags passes through list tags."""
-        from memx.core.cli.main import _parse_tags
+        from memorus.core.cli.main import _parse_tags
 
         assert _parse_tags(["x", "y"]) == ["x", "y"]
 
     def test_parse_tags_invalid(self) -> None:
         """_parse_tags returns empty for invalid input."""
-        from memx.core.cli.main import _parse_tags
+        from memorus.core.cli.main import _parse_tags
 
         assert _parse_tags("not json") == []
         assert _parse_tags(None) == []

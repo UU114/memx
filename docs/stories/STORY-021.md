@@ -12,7 +12,7 @@
 
 ## User Story
 
-As a MemX system
+As a Memorus system
 I want batch decay updates and recall reinforcement
 So that memory lifecycle is automatically managed
 
@@ -90,7 +90,7 @@ class DecayEngine:
 ```
 
 ### Components
-- `memx/engines/decay/engine.py` — 扩展 DecayEngine，添加 sweep() 和 reinforce()
+- `memorus/engines/decay/engine.py` — 扩展 DecayEngine，添加 sweep() 和 reinforce()
 
 ### Edge Cases
 - sweep 1000+ 条记忆性能需可接受

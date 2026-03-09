@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from memx.team.sync_client import (
+from memorus.team.sync_client import (
     AceSyncClient,
     BulletIndexEntry,
     IndexResponse,
@@ -454,7 +454,7 @@ async def test_context_manager(client: AceSyncClient) -> None:
 
 def test_httpx_import_error() -> None:
     """Clear error when httpx is not installed."""
-    import memx.team.sync_client as mod
+    import memorus.team.sync_client as mod
 
     original = mod._httpx
     try:

@@ -10,7 +10,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from memx.team.taxonomy import (
+from memorus.team.taxonomy import (
     PRESET_ALIASES,
     PRESET_CATEGORIES,
     TagTaxonomy,

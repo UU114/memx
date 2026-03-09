@@ -12,7 +12,7 @@
 
 ## User Story
 
-As a MemX maintainer
+As a Memorus maintainer
 I want automated tests that verify Core/Team decoupling
 So that future changes don't accidentally introduce coupling
 
@@ -21,7 +21,7 @@ So that future changes don't accidentally introduce coupling
 ## Description
 
 ### Background
-Core/Team 解耦是 MemX Team Memory 架构的核心原则（NFR-014）。需要自动化测试确保依赖方向严格单向（Core ← Team，不可反向），且 Core 在 Team 不存在时功能完全正常。
+Core/Team 解耦是 Memorus Team Memory 架构的核心原则（NFR-014）。需要自动化测试确保依赖方向严格单向（Core ← Team，不可反向），且 Core 在 Team 不存在时功能完全正常。
 
 ### Scope
 **In scope:**
@@ -44,10 +44,10 @@ Core/Team 解耦是 MemX Team Memory 架构的核心原则（NFR-014）。需要
 
 ## Acceptance Criteria
 
-- [ ] CI 静态检查：`memx/core/` 中无 `from memx.team` 或 `import memx.team`
-- [ ] 测试：`pip install memx`（无 team extra）→ Core 功能正常
+- [ ] CI 静态检查：`memorus/core/` 中无 `from memorus.team` 或 `import memorus.team`
+- [ ] 测试：`pip install memorus`（无 team extra）→ Core 功能正常
 - [ ] 测试：Team 功能禁用时所有 Core 测试 100% 通过
-- [ ] 测试：删除 `memx/team/` 后 Core 行为不变
+- [ ] 测试：删除 `memorus/team/` 后 Core 行为不变
 - [ ] 集成到 CI Pipeline（GitHub Actions / pytest marker）
 - [ ] 检查报告清晰指出违规的文件和行号
 
@@ -67,8 +67,8 @@ import ast
 import os
 from pathlib import Path
 
-CORE_DIR = Path("memx/core")
-FORBIDDEN_IMPORTS = {"memx.team", "from memx.team", "from memx import team"}
+CORE_DIR = Path("memorus/core")
+FORBIDDEN_IMPORTS = {"memorus.team", "from memorus.team", "from memorus import team"}
 
 
 class TestDecoupling:
@@ -83,27 +83,27 @@ class TestDecoupling:
             for node in ast.walk(tree):
                 if isinstance(node, ast.Import):
                     for alias in node.names:
-                        if alias.name.startswith("memx.team"):
+                        if alias.name.startswith("memorus.team"):
                             violations.append(f"{py_file}:{node.lineno} import {alias.name}")
                 elif isinstance(node, ast.ImportFrom):
-                    if node.module and node.module.startswith("memx.team"):
+                    if node.module and node.module.startswith("memorus.team"):
                         violations.append(f"{py_file}:{node.lineno} from {node.module}")
 
         assert not violations, f"Core imports Team:\n" + "\n".join(violations)
 
     def test_core_functions_without_team(self, tmp_path, monkeypatch):
-        """Core works when memx.team is not importable."""
+        """Core works when memorus.team is not importable."""
         import sys
         # Block team imports
-        monkeypatch.setitem(sys.modules, "memx.team", None)
+        monkeypatch.setitem(sys.modules, "memorus.team", None)
 
-        from memx.core.memory import Memory
+        from memorus.core.memory import Memory
         # Memory should initialize without error
         # (actual test depends on Memory constructor signature)
 
     def test_ext_bootstrap_handles_missing_team(self):
         """team_bootstrap gracefully handles missing Team package."""
-        from memx.ext.team_bootstrap import try_bootstrap_team
+        from memorus.ext.team_bootstrap import try_bootstrap_team
         # Should return False, not raise
         result = try_bootstrap_team(None)
         assert result is False
@@ -116,7 +116,7 @@ class TestDecoupling:
   run: |
     python -m pytest tests/unit/test_decoupling.py -v
     # Optional: grep-based fast check
-    ! grep -rn "from memx.team\|import memx.team" memx/core/
+    ! grep -rn "from memorus.team\|import memorus.team" memorus/core/
 ```
 
 ---
@@ -124,7 +124,7 @@ class TestDecoupling:
 ## Dependencies
 
 **Prerequisite Stories:**
-- STORY-048: 重构 memx/ → memx/core/
+- STORY-048: 重构 memorus/ → memorus/core/
 - STORY-052: ext/team_bootstrap.py
 
 **Blocked Stories:**

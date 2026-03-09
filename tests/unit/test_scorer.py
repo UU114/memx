@@ -1,10 +1,10 @@
-"""Unit tests for memx.engines.reflector.scorer -- KnowledgeScorer."""
+"""Unit tests for memorus.engines.reflector.scorer -- KnowledgeScorer."""
 
 from __future__ import annotations
 
-from memx.core.config import ReflectorConfig
-from memx.core.engines.reflector.scorer import KnowledgeScorer
-from memx.core.types import (
+from memorus.core.config import ReflectorConfig
+from memorus.core.engines.reflector.scorer import KnowledgeScorer
+from memorus.core.types import (
     BulletSection,
     DetectedPattern,
     KnowledgeType,

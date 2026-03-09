@@ -78,7 +78,7 @@ class ExactMatcher:
 ```
 
 ### Components
-- `memx/engines/generator/exact_matcher.py`
+- `memorus/engines/generator/exact_matcher.py`
 
 ### Implementation Notes
 - 英文分词：用空格 + 标点分割，过滤 stopwords
@@ -99,7 +99,7 @@ class ExactMatcher:
 
 ## Definition of Done
 
-- [ ] `memx/engines/generator/exact_matcher.py` 实现
+- [ ] `memorus/engines/generator/exact_matcher.py` 实现
 - [ ] 中英文匹配单元测试
 - [ ] mypy --strict 通过
 - [ ] ruff check 通过

@@ -1,13 +1,13 @@
 # BMAD Sprint Status
-# Project: MemX
+# Project: Memorus
 # Generated: 2026-02-27
 # Last Updated: 2026-02-27T12:00:00Z
 
 version: "6.0.0"
-project_name: "MemX"
+project_name: "Memorus"
 project_level: 3
 current_sprint: 4
-sprint_plan_path: "docs/sprint-plan-memx-2026-02-27.md"
+sprint_plan_path: "docs/sprint-plan-memorus-2026-02-27.md"
 
 sprints:
   - sprint_number: 1
@@ -17,7 +17,7 @@ sprints:
     committed_points: 60
     completed_points: 60
     status: "completed"
-    goal: "完成 MemX 项目骨架、数据模型、配置系统、mem0 兼容层、Reflector 知识蒸馏引擎"
+    goal: "完成 Memorus 项目骨架、数据模型、配置系统、mem0 兼容层、Reflector 知识蒸馏引擎"
     stories:
       - story_id: "STORY-006"
         title: "项目骨架和包结构"
@@ -38,19 +38,19 @@ sprints:
         assigned_to: "Developer"
         completion_date: "2026-02-27"
       - story_id: "STORY-003"
-        title: "MemXConfig 配置模型"
+        title: "MemorusConfig 配置模型"
         points: 5
         status: "completed"
         assigned_to: "Developer"
         completion_date: "2026-02-27"
       - story_id: "STORY-004"
-        title: "MemXMemory Decorator"
+        title: "MemorusMemory Decorator"
         points: 5
         status: "completed"
         assigned_to: "Developer"
         completion_date: "2026-02-27"
       - story_id: "STORY-005"
-        title: "AsyncMemXMemory"
+        title: "AsyncMemorusMemory"
         points: 3
         status: "completed"
         assigned_to: "Developer"
@@ -232,7 +232,7 @@ sprints:
     committed_points: 56
     completed_points: 56
     status: "completed"
-    goal: "完成 Integration + ONNX + Daemon + CLI，MemX 可在 CLI AI 工具中自动运行"
+    goal: "完成 Integration + ONNX + Daemon + CLI，Memorus 可在 CLI AI 工具中自动运行"
     stories:
       - story_id: "STORY-032"
         title: "IntegrationManager 抽象"
@@ -270,7 +270,7 @@ sprints:
         completion_date: "2026-02-27"
         story_doc: "docs/stories/STORY-036.md"
       - story_id: "STORY-037"
-        title: "MemXDaemon 服务端"
+        title: "MemorusDaemon 服务端"
         points: 8
         status: "completed"
         assigned_to: "Developer"

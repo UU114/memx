@@ -21,7 +21,7 @@ So that we catch performance regressions in CI
 ## Description
 
 ### Background
-MemX 的 PRD 定义了明确的性能要求：
+Memorus 的 PRD 定义了明确的性能要求：
 - **NFR-001**: 检索延迟 < 50ms（5000 条记忆）
 - **蒸馏延迟**: 单次 Reflector < 20ms（rules 模式）
 - **ONNX embed**: 单条 < 10ms
@@ -81,8 +81,8 @@ MemX 的 PRD 定义了明确的性能要求：
 import pytest
 from datetime import datetime, timedelta
 import random
-from memx.types import BulletMetadata, BulletSection, KnowledgeType
-from memx.engines.generator.engine import BulletForSearch, MetadataInfo
+from memorus.types import BulletMetadata, BulletSection, KnowledgeType
+from memorus.engines.generator.engine import BulletForSearch, MetadataInfo
 
 @pytest.fixture
 def generate_bullets():
@@ -113,8 +113,8 @@ def generate_bullets():
 ```python
 # tests/performance/test_bench_generator.py
 import pytest
-from memx.engines.generator.engine import GeneratorEngine
-from memx.config import RetrievalConfig
+from memorus.engines.generator.engine import GeneratorEngine
+from memorus.config import RetrievalConfig
 
 def test_generator_search_5000(benchmark, generate_bullets):
     """NFR-001: search latency < 50ms for 5000 bullets."""
@@ -135,9 +135,9 @@ def test_generator_search_5000(benchmark, generate_bullets):
 
 # tests/performance/test_bench_reflector.py
 import pytest
-from memx.engines.reflector.engine import ReflectorEngine
-from memx.types import InteractionEvent
-from memx.config import ReflectorConfig
+from memorus.engines.reflector.engine import ReflectorEngine
+from memorus.types import InteractionEvent
+from memorus.config import ReflectorConfig
 
 def test_reflector_rules_mode(benchmark):
     """Reflector rules mode < 20ms per event."""

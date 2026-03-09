@@ -13,16 +13,16 @@ from unittest.mock import MagicMock, patch
 import pytest
 from click.testing import CliRunner
 
-from memx.core.cli.main import cli
-from memx.core.config import CuratorConfig, MemXConfig, RetrievalConfig
-from memx.core.engines.curator.engine import CuratorEngine, ExistingBullet
-from memx.core.engines.generator.engine import BulletForSearch, GeneratorEngine
-from memx.core.engines.generator.metadata_matcher import MetadataInfo
-from memx.core.engines.generator.score_merger import BulletInfo, ScoreMerger
-from memx.core.memory import Memory, _validate_scope
-from memx.core.pipeline.ingest import IngestPipeline, IngestResult
-from memx.core.pipeline.retrieval import RetrievalPipeline, SearchResult
-from memx.core.types import BulletMetadata, BulletSection, CandidateBullet, KnowledgeType, SourceType
+from memorus.core.cli.main import cli
+from memorus.core.config import CuratorConfig, MemorusConfig, RetrievalConfig
+from memorus.core.engines.curator.engine import CuratorEngine, ExistingBullet
+from memorus.core.engines.generator.engine import BulletForSearch, GeneratorEngine
+from memorus.core.engines.generator.metadata_matcher import MetadataInfo
+from memorus.core.engines.generator.score_merger import BulletInfo, ScoreMerger
+from memorus.core.memory import Memory, _validate_scope
+from memorus.core.pipeline.ingest import IngestPipeline, IngestResult
+from memorus.core.pipeline.retrieval import RetrievalPipeline, SearchResult
+from memorus.core.types import BulletMetadata, BulletSection, CandidateBullet, KnowledgeType, SourceType
 
 _NOW = datetime(2026, 2, 27, 12, 0, 0, tzinfo=timezone.utc)
 
@@ -377,9 +377,9 @@ class TestIngestPipelineScopePassthrough:
         )
 
         assert result.bullets_added == 1
-        # Verify memx_scope is in the metadata written to mem0
+        # Verify memorus_scope is in the metadata written to mem0
         meta = mem0_add.call_args[1]["metadata"]
-        assert meta["memx_scope"] == "project:myapp"
+        assert meta["memorus_scope"] == "project:myapp"
 
     def test_scope_default_global(self) -> None:
         """When scope is not passed, default to global."""
@@ -402,7 +402,7 @@ class TestIngestPipelineScopePassthrough:
 
         assert result.bullets_added == 1
         meta = mem0_add.call_args[1]["metadata"]
-        assert meta["memx_scope"] == "global"
+        assert meta["memorus_scope"] == "global"
 
     def test_scope_on_candidate_object(self) -> None:
         """Verify the candidate object's scope field is set."""
@@ -461,7 +461,7 @@ class TestMemoryAddScope:
 
     def test_add_with_scope(self) -> None:
         m = Memory.__new__(Memory)
-        m._config = MemXConfig(ace_enabled=True)
+        m._config = MemorusConfig(ace_enabled=True)
         m._mem0 = MagicMock()
         m._mem0_init_error = None
         m._retrieval_pipeline = None
@@ -479,7 +479,7 @@ class TestMemoryAddScope:
 
     def test_add_without_scope_defaults_global(self) -> None:
         m = Memory.__new__(Memory)
-        m._config = MemXConfig(ace_enabled=True)
+        m._config = MemorusConfig(ace_enabled=True)
         m._mem0 = MagicMock()
         m._mem0_init_error = None
         m._retrieval_pipeline = None
@@ -496,7 +496,7 @@ class TestMemoryAddScope:
 
     def test_add_with_invalid_scope_raises(self) -> None:
         m = Memory.__new__(Memory)
-        m._config = MemXConfig(ace_enabled=True)
+        m._config = MemorusConfig(ace_enabled=True)
         m._mem0 = MagicMock()
         m._mem0_init_error = None
         m._retrieval_pipeline = None
@@ -517,7 +517,7 @@ class TestMemorySearchScope:
 
     def test_search_with_scope(self) -> None:
         m = Memory.__new__(Memory)
-        m._config = MemXConfig(ace_enabled=True)
+        m._config = MemorusConfig(ace_enabled=True)
         m._mem0 = MagicMock()
         m._mem0.get_all.return_value = {"memories": []}
         m._mem0_init_error = None
@@ -538,7 +538,7 @@ class TestMemorySearchScope:
 
     def test_search_without_scope_passes_none(self) -> None:
         m = Memory.__new__(Memory)
-        m._config = MemXConfig(ace_enabled=True)
+        m._config = MemorusConfig(ace_enabled=True)
         m._mem0 = MagicMock()
         m._mem0.get_all.return_value = {"memories": []}
         m._mem0_init_error = None
@@ -567,14 +567,14 @@ class TestLoadBulletsForSearchScope:
 
     def test_scope_loaded_from_payload(self) -> None:
         m = Memory.__new__(Memory)
-        m._config = MemXConfig()
+        m._config = MemorusConfig()
         m._mem0 = MagicMock()
         m._mem0.get_all.return_value = {
             "memories": [
                 {
                     "id": "b1",
                     "memory": "test content",
-                    "metadata": {"memx_scope": "project:myapp"},
+                    "metadata": {"memorus_scope": "project:myapp"},
                 }
             ]
         }
@@ -588,9 +588,9 @@ class TestLoadBulletsForSearchScope:
         assert bullets[0].scope == "project:myapp"
 
     def test_missing_scope_defaults_to_global(self) -> None:
-        """Legacy payloads without memx_scope default to global."""
+        """Legacy payloads without memorus_scope default to global."""
         m = Memory.__new__(Memory)
-        m._config = MemXConfig()
+        m._config = MemorusConfig()
         m._mem0 = MagicMock()
         m._mem0.get_all.return_value = {
             "memories": [
@@ -623,7 +623,7 @@ class TestCLIScopeOption:
         runner = CliRunner()
         mock_memory = MagicMock()
         mock_memory.search.return_value = {"results": []}
-        with patch("memx.core.cli.main._create_memory", return_value=mock_memory):
+        with patch("memorus.core.cli.main._create_memory", return_value=mock_memory):
             result = runner.invoke(
                 cli, ["search", "query", "--scope", "project:myapp"]
             )
@@ -636,7 +636,7 @@ class TestCLIScopeOption:
         runner = CliRunner()
         mock_memory = MagicMock()
         mock_memory.search.return_value = {"results": []}
-        with patch("memx.core.cli.main._create_memory", return_value=mock_memory):
+        with patch("memorus.core.cli.main._create_memory", return_value=mock_memory):
             result = runner.invoke(cli, ["search", "query"])
         assert result.exit_code == 0
         mock_memory.search.assert_called_once_with(
@@ -647,7 +647,7 @@ class TestCLIScopeOption:
         runner = CliRunner()
         mock_memory = MagicMock()
         mock_memory.search.return_value = {"results": []}
-        with patch("memx.core.cli.main._create_memory", return_value=mock_memory):
+        with patch("memorus.core.cli.main._create_memory", return_value=mock_memory):
             result = runner.invoke(
                 cli,
                 ["search", "query", "--scope", "project:myapp", "--limit", "10"],
@@ -798,7 +798,7 @@ class TestIngestPipelineExistingBulletsScope:
                     {
                         "id": "b1",
                         "memory": "content",
-                        "metadata": {"memx_scope": "project:myapp"},
+                        "metadata": {"memorus_scope": "project:myapp"},
                     },
                     {
                         "id": "b2",
@@ -812,4 +812,4 @@ class TestIngestPipelineExistingBulletsScope:
         existing = pipeline._load_existing_bullets(None, None)
         assert len(existing) == 2
         assert existing[0].scope == "project:myapp"
-        assert existing[1].scope == "global"  # default for missing memx_scope
+        assert existing[1].scope == "global"  # default for missing memorus_scope

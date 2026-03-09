@@ -1,4 +1,4 @@
-"""Unit tests for memx.engines.generator.engine — GeneratorEngine."""
+"""Unit tests for memorus.engines.generator.engine — GeneratorEngine."""
 
 from __future__ import annotations
 
@@ -9,10 +9,10 @@ from unittest.mock import patch
 
 import pytest
 
-from memx.core.config import RetrievalConfig
-from memx.core.engines.generator.engine import BulletForSearch, GeneratorEngine
-from memx.core.engines.generator.metadata_matcher import MetadataInfo
-from memx.core.engines.generator.vector_searcher import VectorMatch, VectorSearcher
+from memorus.core.config import RetrievalConfig
+from memorus.core.engines.generator.engine import BulletForSearch, GeneratorEngine
+from memorus.core.engines.generator.metadata_matcher import MetadataInfo
+from memorus.core.engines.generator.vector_searcher import VectorMatch, VectorSearcher
 
 # ── Helper fixtures ──────────────────────────────────────────────────────
 
@@ -245,7 +245,7 @@ class TestSearchDegradedMode:
         engine = GeneratorEngine()
         bullets = [_make_bullet("b1", "test content")]
 
-        with caplog.at_level(logging.WARNING, logger="memx.core.engines.generator.engine"):
+        with caplog.at_level(logging.WARNING, logger="memorus.core.engines.generator.engine"):
             engine.search("test", bullets)
             engine.search("test", bullets)
             engine.search("test", bullets)
@@ -279,14 +279,14 @@ class TestAutoRecovery:
         bullets = [_make_bullet("b1", "test content")]
 
         # First search: degraded
-        with caplog.at_level(logging.WARNING, logger="memx.core.engines.generator.engine"):
+        with caplog.at_level(logging.WARNING, logger="memorus.core.engines.generator.engine"):
             engine.search("test", bullets)
         assert engine.mode == "degraded"
 
         # Simulate embedding recovery
         vs._search_fn = lambda **kw: []
 
-        with caplog.at_level(logging.INFO, logger="memx.core.engines.generator.engine"):
+        with caplog.at_level(logging.INFO, logger="memorus.core.engines.generator.engine"):
             engine.search("test", bullets)
         assert engine.mode == "full"
 
@@ -329,7 +329,7 @@ class TestErrorIsolation:
             patch.object(
                 engine._exact_matcher, "match_batch", side_effect=RuntimeError("L1 exploded")
             ),
-            caplog.at_level(logging.WARNING, logger="memx.core.engines.generator.engine"),
+            caplog.at_level(logging.WARNING, logger="memorus.core.engines.generator.engine"),
         ):
             results = engine.search("test", bullets)
 
@@ -346,7 +346,7 @@ class TestErrorIsolation:
             patch.object(
                 engine._fuzzy_matcher, "match_batch", side_effect=RuntimeError("L2 exploded")
             ),
-            caplog.at_level(logging.WARNING, logger="memx.core.engines.generator.engine"),
+            caplog.at_level(logging.WARNING, logger="memorus.core.engines.generator.engine"),
         ):
             results = engine.search("test", bullets)
 
@@ -362,7 +362,7 @@ class TestErrorIsolation:
             patch.object(
                 engine._metadata_matcher, "match", side_effect=RuntimeError("L3 exploded")
             ),
-            caplog.at_level(logging.WARNING, logger="memx.core.engines.generator.engine"),
+            caplog.at_level(logging.WARNING, logger="memorus.core.engines.generator.engine"),
         ):
             results = engine.search("git", bullets)
 
@@ -379,7 +379,7 @@ class TestErrorIsolation:
             patch.object(
                 engine._vector_searcher, "search", side_effect=RuntimeError("L4 exploded")
             ),
-            caplog.at_level(logging.WARNING, logger="memx.core.engines.generator.engine"),
+            caplog.at_level(logging.WARNING, logger="memorus.core.engines.generator.engine"),
         ):
             results = engine.search("test", bullets)
 
@@ -401,7 +401,7 @@ class TestErrorIsolation:
             patch.object(
                 engine._fuzzy_matcher, "match_batch", side_effect=RuntimeError("L2 fail")
             ),
-            caplog.at_level(logging.WARNING, logger="memx.core.engines.generator.engine"),
+            caplog.at_level(logging.WARNING, logger="memorus.core.engines.generator.engine"),
         ):
             results = engine.search("test", bullets)
 

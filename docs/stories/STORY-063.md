@@ -59,8 +59,8 @@ So that sensitive data never reaches the team pool
 ## Technical Notes
 
 ### Components
-- **File:** `memx/team/redactor.py`
-- **Dependencies:** `memx/core/privacy/sanitizer.py`（复用）
+- **File:** `memorus/team/redactor.py`
+- **Dependencies:** `memorus/core/privacy/sanitizer.py`（复用）
 
 ### RedactorConfig (from TeamConfig)
 ```python

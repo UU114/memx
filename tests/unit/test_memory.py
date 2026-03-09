@@ -1,12 +1,12 @@
-"""Unit tests for memx.memory — Memory decorator wrapper class."""
+"""Unit tests for memorus.memory — Memory decorator wrapper class."""
 
 from __future__ import annotations
 
 import pytest
 from unittest.mock import MagicMock, patch
 
-from memx.core.config import MemXConfig
-from memx.core.memory import Memory
+from memorus.core.config import MemorusConfig
+from memorus.core.memory import Memory
 
 
 # ---------------------------------------------------------------------------
@@ -22,7 +22,7 @@ def memory() -> Memory:
     that tests do not require mem0 to be installed or an API key to be set.
     """
     m = Memory.__new__(Memory)
-    m._config = MemXConfig()
+    m._config = MemorusConfig()
     m._mem0 = MagicMock()
     m._mem0_init_error = None
 
@@ -47,7 +47,7 @@ def memory() -> Memory:
 def ace_memory() -> Memory:
     """Create a Memory instance with ACE enabled."""
     m = Memory.__new__(Memory)
-    m._config = MemXConfig(ace_enabled=True)
+    m._config = MemorusConfig(ace_enabled=True)
     m._mem0 = MagicMock()
     m._mem0_init_error = None
 
@@ -69,14 +69,14 @@ class TestInit:
     """Memory initialization tests."""
 
     def test_init_default_config(self, memory: Memory) -> None:
-        """Memory() uses default MemXConfig (ace_enabled=False)."""
+        """Memory() uses default MemorusConfig (ace_enabled=False)."""
         assert memory._config.ace_enabled is False
-        assert isinstance(memory._config, MemXConfig)
+        assert isinstance(memory._config, MemorusConfig)
 
     def test_init_with_config_ace_enabled(self) -> None:
         """Memory({"ace_enabled": True}) sets ace_enabled flag."""
         m = Memory.__new__(Memory)
-        m._config = MemXConfig.from_dict({"ace_enabled": True})
+        m._config = MemorusConfig.from_dict({"ace_enabled": True})
         m._mem0 = MagicMock()
         m._mem0_init_error = None
         m._ingest_pipeline = None
@@ -87,7 +87,7 @@ class TestInit:
     def test_init_with_mem0_config_fields(self) -> None:
         """mem0-specific fields are separated from ACE fields in config."""
         m = Memory.__new__(Memory)
-        m._config = MemXConfig.from_dict({
+        m._config = MemorusConfig.from_dict({
             "vector_store": {"provider": "qdrant"},
             "llm": {"provider": "openai"},
         })
@@ -109,7 +109,7 @@ class TestInit:
     def test_mem0_init_failure_stored(self) -> None:
         """When mem0 import fails, the error is stored and _mem0 is None."""
         m = Memory.__new__(Memory)
-        m._config = MemXConfig()
+        m._config = MemorusConfig()
         m._mem0 = None
         m._mem0_init_error = ImportError("No module named 'mem0'")
         m._ingest_pipeline = None
@@ -135,7 +135,7 @@ class TestEnsureMem0:
     def test_ensure_mem0_raises_when_none(self) -> None:
         """_ensure_mem0 raises RuntimeError when _mem0 is None."""
         m = Memory.__new__(Memory)
-        m._config = MemXConfig()
+        m._config = MemorusConfig()
         m._mem0 = None
         m._mem0_init_error = ImportError("No module named 'mem0'")
         m._ingest_pipeline = None
@@ -325,7 +325,7 @@ class TestNotImplemented:
     def test_run_decay_sweep_empty_memories(self) -> None:
         """run_decay_sweep() handles empty memory store."""
         m = Memory.__new__(Memory)
-        m._config = MemXConfig(ace_enabled=True)
+        m._config = MemorusConfig(ace_enabled=True)
         m._mem0 = MagicMock()
         m._mem0.get_all.return_value = {"memories": []}
         result = m.run_decay_sweep()
@@ -338,7 +338,7 @@ class TestNotImplemented:
         from datetime import datetime, timedelta, timezone
 
         m = Memory.__new__(Memory)
-        m._config = MemXConfig(ace_enabled=True)
+        m._config = MemorusConfig(ace_enabled=True)
         m._mem0 = MagicMock()
 
         old_date = (datetime.now(timezone.utc) - timedelta(days=365)).isoformat()
@@ -349,27 +349,27 @@ class TestNotImplemented:
                 "id": "old-1",
                 "memory": "ancient fact",
                 "metadata": {
-                    "memx_created_at": old_date,
-                    "memx_recall_count": 0,
-                    "memx_decay_weight": 1.0,
+                    "memorus_created_at": old_date,
+                    "memorus_recall_count": 0,
+                    "memorus_decay_weight": 1.0,
                 },
             },
             {
                 "id": "recent-1",
                 "memory": "fresh fact",
                 "metadata": {
-                    "memx_created_at": recent_date,
-                    "memx_recall_count": 0,
-                    "memx_decay_weight": 1.0,
+                    "memorus_created_at": recent_date,
+                    "memorus_recall_count": 0,
+                    "memorus_decay_weight": 1.0,
                 },
             },
             {
                 "id": "permanent-1",
                 "memory": "permanent fact",
                 "metadata": {
-                    "memx_created_at": old_date,
-                    "memx_recall_count": 20,
-                    "memx_decay_weight": 1.0,
+                    "memorus_created_at": old_date,
+                    "memorus_recall_count": 20,
+                    "memorus_decay_weight": 1.0,
                 },
             },
         ]}
@@ -390,9 +390,9 @@ class TestNotImplemented:
 class TestConfigProperty:
     """Tests for the config property."""
 
-    def test_config_property_returns_memx_config(self, memory: Memory) -> None:
-        """config property returns the MemXConfig instance."""
-        assert isinstance(memory.config, MemXConfig)
+    def test_config_property_returns_memorus_config(self, memory: Memory) -> None:
+        """config property returns the MemorusConfig instance."""
+        assert isinstance(memory.config, MemorusConfig)
 
     def test_config_property_ace_disabled_by_default(self, memory: Memory) -> None:
         """Default config has ace_enabled=False."""
@@ -488,7 +488,7 @@ class TestSanitization:
     def test_add_with_always_sanitize(self, memory: Memory) -> None:
         """When always_sanitize is True and ACE is off, add() sanitizes messages."""
         # Set up config with always_sanitize
-        memory._config = MemXConfig.from_dict({
+        memory._config = MemorusConfig.from_dict({
             "privacy": {"always_sanitize": True},
         })
 
@@ -531,7 +531,7 @@ class TestInitACEEngines:
     def test_init_ace_engines_handles_import_failure(self) -> None:
         """When ACE engine imports fail, Memory degrades to proxy mode."""
         m = Memory.__new__(Memory)
-        m._config = MemXConfig(ace_enabled=True)
+        m._config = MemorusConfig(ace_enabled=True)
         m._mem0 = MagicMock()
         m._mem0_init_error = None
         m._ingest_pipeline = None
@@ -540,7 +540,7 @@ class TestInitACEEngines:
 
         # Patch imports to fail
         with patch(
-            "memx.core.memory.Memory._init_ace_engines"
+            "memorus.core.memory.Memory._init_ace_engines"
         ) as mock_init:
             mock_init.side_effect = None  # no-op
             m._init_ace_engines()

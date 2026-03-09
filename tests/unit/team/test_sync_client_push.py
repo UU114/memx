@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from memx.team.sync_client import (
+from memorus.team.sync_client import (
     AceSyncClient,
     ConflictError,
     NominateResponse,
@@ -484,7 +484,7 @@ async def test_retryable_error_on_timeout(
 
 def test_retryable_error_is_sync_error() -> None:
     """RetryableError inherits from SyncError."""
-    from memx.team.sync_client import SyncError
+    from memorus.team.sync_client import SyncError
 
     err = RetryableError("test")
     assert isinstance(err, SyncError)
@@ -492,7 +492,7 @@ def test_retryable_error_is_sync_error() -> None:
 
 def test_permanent_error_is_sync_error() -> None:
     """PermanentError inherits from SyncError."""
-    from memx.team.sync_client import SyncError
+    from memorus.team.sync_client import SyncError
 
     err = PermanentError("test")
     assert isinstance(err, SyncError)

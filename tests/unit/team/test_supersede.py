@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from memx.team.nominator import (
+from memorus.team.nominator import (
     NominationResult,
     SupersedeDetector,
     SupersedeNotification,
@@ -20,16 +20,16 @@ from memx.team.nominator import (
     submit_supersede,
     _jaccard_similarity,
 )
-from memx.team.merger import (
+from memorus.team.merger import (
     LayerBoostConfig,
     MultiPoolRetriever,
     ScoredResult,
     SupersedeConflict,
     _content_similarity,
 )
-from memx.team.cache_storage import TeamCacheStorage, _word_similarity
-from memx.team.config import TeamConfig
-from memx.team.types import TeamBullet
+from memorus.team.cache_storage import TeamCacheStorage, _word_similarity
+from memorus.team.config import TeamConfig
+from memorus.team.types import TeamBullet
 
 
 # ---------------------------------------------------------------------------

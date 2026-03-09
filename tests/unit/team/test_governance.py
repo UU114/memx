@@ -18,7 +18,7 @@ from unittest.mock import patch
 import pytest
 from click.testing import CliRunner
 
-from memx.team.cache_storage import (
+from memorus.team.cache_storage import (
     TeamCacheStorage,
     _AUTO_APPROVE_WEIGHT,
     _BACKLOG_MAX_PENDING_DAYS,
@@ -27,10 +27,10 @@ from memx.team.cache_storage import (
     _TIMEOUT_REJECT_DAYS,
     _UPVOTE_DELTA,
 )
-from memx.team.cli import team_group
-from memx.team.config import TeamConfig
-from memx.team.nominator import GovernanceClassifier
-from memx.team.types import GovernanceTier, TeamBullet
+from memorus.team.cli import team_group
+from memorus.team.config import TeamConfig
+from memorus.team.nominator import GovernanceClassifier
+from memorus.team.types import GovernanceTier, TeamBullet
 
 
 # ---------------------------------------------------------------------------
@@ -56,7 +56,7 @@ def team_config(tmp_path):
 def cache(team_config, tmp_path, monkeypatch):
     """Create a TeamCacheStorage that writes to tmp_path instead of ~/.ace."""
     monkeypatch.setattr(
-        "memx.team.cache_storage.TeamCacheStorage._load", lambda self: None
+        "memorus.team.cache_storage.TeamCacheStorage._load", lambda self: None
     )
     storage = TeamCacheStorage(team_config)
     storage._cache_dir = tmp_path
@@ -440,41 +440,41 @@ class TestCLIVoteCommands:
 
     def test_upvote_not_found(self, runner):
         """Upvote on nonexistent bullet shows error."""
-        with patch("memx.team.cli._ensure_team_enabled") as mock_enabled:
+        with patch("memorus.team.cli._ensure_team_enabled") as mock_enabled:
             mock_enabled.return_value = (
                 TeamConfig(enabled=True, team_id="test"),
                 None,
             )
-            with patch("memx.team.cache_storage.TeamCacheStorage._load"):
+            with patch("memorus.team.cache_storage.TeamCacheStorage._load"):
                 result = runner.invoke(team_group, ["upvote", "nonexistent"])
                 assert result.exit_code != 0
 
     def test_downvote_not_found(self, runner):
         """Downvote on nonexistent bullet shows error."""
-        with patch("memx.team.cli._ensure_team_enabled") as mock_enabled:
+        with patch("memorus.team.cli._ensure_team_enabled") as mock_enabled:
             mock_enabled.return_value = (
                 TeamConfig(enabled=True, team_id="test"),
                 None,
             )
-            with patch("memx.team.cache_storage.TeamCacheStorage._load"):
+            with patch("memorus.team.cache_storage.TeamCacheStorage._load"):
                 result = runner.invoke(team_group, ["downvote", "nonexistent"])
                 assert result.exit_code != 0
 
     def test_upvote_team_not_enabled(self, runner):
         """Error when team features disabled."""
-        with patch("memx.team.cli._ensure_team_enabled") as mock_enabled:
+        with patch("memorus.team.cli._ensure_team_enabled") as mock_enabled:
             mock_enabled.return_value = (None, "Team not enabled")
             result = runner.invoke(team_group, ["upvote", "some-id"])
             assert result.exit_code != 0
 
     def test_upvote_json_output(self, runner):
         """JSON output for upvote on missing bullet."""
-        with patch("memx.team.cli._ensure_team_enabled") as mock_enabled:
+        with patch("memorus.team.cli._ensure_team_enabled") as mock_enabled:
             mock_enabled.return_value = (
                 TeamConfig(enabled=True, team_id="test"),
                 None,
             )
-            with patch("memx.team.cache_storage.TeamCacheStorage._load"):
+            with patch("memorus.team.cache_storage.TeamCacheStorage._load"):
                 result = runner.invoke(
                     team_group, ["upvote", "nonexistent", "--json"]
                 )
@@ -483,23 +483,23 @@ class TestCLIVoteCommands:
 
     def test_backlog_command(self, runner):
         """Backlog command runs without error when team enabled."""
-        with patch("memx.team.cli._ensure_team_enabled") as mock_enabled:
+        with patch("memorus.team.cli._ensure_team_enabled") as mock_enabled:
             mock_enabled.return_value = (
                 TeamConfig(enabled=True, team_id="test"),
                 None,
             )
-            with patch("memx.team.cache_storage.TeamCacheStorage._load"):
+            with patch("memorus.team.cache_storage.TeamCacheStorage._load"):
                 result = runner.invoke(team_group, ["backlog"])
                 assert "Staging bullets:" in result.output
 
     def test_backlog_json(self, runner):
         """Backlog JSON output contains expected fields."""
-        with patch("memx.team.cli._ensure_team_enabled") as mock_enabled:
+        with patch("memorus.team.cli._ensure_team_enabled") as mock_enabled:
             mock_enabled.return_value = (
                 TeamConfig(enabled=True, team_id="test"),
                 None,
             )
-            with patch("memx.team.cache_storage.TeamCacheStorage._load"):
+            with patch("memorus.team.cache_storage.TeamCacheStorage._load"):
                 result = runner.invoke(team_group, ["backlog", "--json"])
                 data = json.loads(result.output)
                 assert "staging_count" in data

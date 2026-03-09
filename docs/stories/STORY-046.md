@@ -13,7 +13,7 @@
 ## User Story
 
 As an end user
-I want to install MemX with pip
+I want to install Memorus with pip
 So that getting started is trivial
 
 ---
@@ -26,7 +26,7 @@ STORY-006 已创建项目骨架和初始 `pyproject.toml`。本 Story 需要：
 2. 编写 README 快速开始指南
 3. 创建 CHANGELOG
 4. 配置 GitHub Actions 自动发布工作流
-5. 确保 `pip install memx` → `memx status` 可直接运行
+5. 确保 `pip install memorus` → `memorus status` 可直接运行
 
 ### Scope
 **In scope:**
@@ -34,7 +34,7 @@ STORY-006 已创建项目骨架和初始 `pyproject.toml`。本 Story 需要：
 - 可选依赖分组：`[onnx]`, `[graph]`, `[all]`, `[dev]`
 - `README.md` 快速开始指南 + 功能概览
 - `CHANGELOG.md` 初始版本
-- `memx` CLI entry_point 注册
+- `memorus` CLI entry_point 注册
 - `.github/workflows/publish.yml` — PyPI 自动发布
 - 本地 `pip install -e .` 验证
 - `python -m build` + `twine check` 验证
@@ -49,13 +49,13 @@ STORY-006 已创建项目骨架和初始 `pyproject.toml`。本 Story 需要：
 
 ## Acceptance Criteria
 
-- [ ] `pyproject.toml` 包含完整 metadata：name="memx", version="1.0.0", description, authors, license, python_requires=">=3.9", classifiers
-- [ ] `pip install memx` 安装核心依赖（mem0ai, pydantic, click）
-- [ ] `pip install memx[onnx]` 额外安装 onnxruntime + tokenizers
-- [ ] `pip install memx[all]` 安装所有可选依赖
-- [ ] `pip install memx[dev]` 安装开发依赖（pytest, pytest-benchmark, mypy, ruff）
-- [ ] 安装后 `memx --help` 显示所有命令（entry_point 注册正确）
-- [ ] `python -c "from memx import Memory; m = Memory()"` 成功（零配置启动）
+- [ ] `pyproject.toml` 包含完整 metadata：name="memorus", version="1.0.0", description, authors, license, python_requires=">=3.9", classifiers
+- [ ] `pip install memorus` 安装核心依赖（mem0ai, pydantic, click）
+- [ ] `pip install memorus[onnx]` 额外安装 onnxruntime + tokenizers
+- [ ] `pip install memorus[all]` 安装所有可选依赖
+- [ ] `pip install memorus[dev]` 安装开发依赖（pytest, pytest-benchmark, mypy, ruff）
+- [ ] 安装后 `memorus --help` 显示所有命令（entry_point 注册正确）
+- [ ] `python -c "from memorus import Memory; m = Memory()"` 成功（零配置启动）
 - [ ] `README.md` 包含：项目简介、安装命令、快速开始代码、CLI 示例、与 mem0 对比
 - [ ] `CHANGELOG.md` 包含 v1.0.0 初始发布说明
 - [ ] `.github/workflows/publish.yml` 在 tag push 时自动发布到 PyPI
@@ -70,7 +70,7 @@ STORY-006 已创建项目骨架和初始 `pyproject.toml`。本 Story 需要：
 
 ```toml
 [project]
-name = "memx"
+name = "memorus"
 version = "1.0.0"
 description = "Intelligent memory engine for AI agents — mem0 fork with ACE layer"
 readme = "README.md"
@@ -101,7 +101,7 @@ dependencies = [
 [project.optional-dependencies]
 onnx = ["onnxruntime>=1.16", "tokenizers>=0.15"]
 graph = ["neo4j>=5.0"]
-all = ["memx[onnx]", "memx[graph]"]
+all = ["memorus[onnx]", "memorus[graph]"]
 dev = [
     "pytest>=7.0",
     "pytest-asyncio>=0.21",
@@ -113,21 +113,21 @@ dev = [
 ]
 
 [project.scripts]
-memx = "memx.cli.main:cli"
+memorus = "memorus.cli.main:cli"
 
 [project.urls]
-Homepage = "https://github.com/user/memx"
-Documentation = "https://github.com/user/memx#readme"
-Repository = "https://github.com/user/memx"
-Issues = "https://github.com/user/memx/issues"
-Changelog = "https://github.com/user/memx/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/user/memorus"
+Documentation = "https://github.com/user/memorus#readme"
+Repository = "https://github.com/user/memorus"
+Issues = "https://github.com/user/memorus/issues"
+Changelog = "https://github.com/user/memorus/blob/main/CHANGELOG.md"
 
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["memx*"]
+include = ["memorus*"]
 exclude = ["tests*", "docs*", "bmad*"]
 ```
 
@@ -169,7 +169,7 @@ jobs:
 ### README.md 结构
 
 ```markdown
-# MemX — Intelligent Memory for AI Agents
+# Memorus — Intelligent Memory for AI Agents
 
 > mem0 fork + ACE intelligent layer: auto-learn, auto-forget, auto-recall
 
@@ -182,31 +182,31 @@ jobs:
 - ONNX: local embedding, zero cloud dependency
 
 ## Install
-pip install memx
-pip install memx[onnx]  # for local embedding
+pip install memorus
+pip install memorus[onnx]  # for local embedding
 
 ## Quick Start
-from memx import Memory
+from memorus import Memory
 m = Memory(config={"ace_enabled": True})
 m.add([{"role": "user", "content": "..."}], user_id="dev1")
 results = m.search("pytest verbose", user_id="dev1")
 
 ## CLI
-memx status
-memx search "pytest"
-memx learn "Always use -v flag with pytest"
-memx list --type tool_pattern
+memorus status
+memorus search "pytest"
+memorus learn "Always use -v flag with pytest"
+memorus list --type tool_pattern
 ```
 
 ### Verification Steps
 1. `pip install -e ".[dev]"` — 本地可编辑安装
-2. `memx --help` — CLI 可用
+2. `memorus --help` — CLI 可用
 3. `python -m build` — 构建包
 4. `twine check dist/*` — 包质量检查
-5. `pip install dist/memx-1.0.0-py3-none-any.whl` — 从 wheel 安装验证
+5. `pip install dist/memorus-1.0.0-py3-none-any.whl` — 从 wheel 安装验证
 
 ### Edge Cases
-- 包名 `memx` 已被占用 → 备选 `memx-ai` 或 `memx-memory`
+- 包名 `memorus` 已被占用 → 备选 `memorus-ai` 或 `memorus-memory`
 - mem0ai 版本冲突 → 设置宽松版本约束 `>=0.1.0`
 - Python 3.9 兼容性 → 避免使用 `X | Y` union 语法（运行时），使用 `from __future__ import annotations`
 - Windows 路径 → `pyproject.toml` 中使用 posix 路径
@@ -229,7 +229,7 @@ memx list --type tool_pattern
 
 - [ ] `pyproject.toml` 完善，所有字段填写
 - [ ] `pip install -e .` 成功
-- [ ] `memx --help` 正确显示
+- [ ] `memorus --help` 正确显示
 - [ ] `python -m build` 生成 sdist + wheel
 - [ ] `twine check dist/*` 无警告
 - [ ] `README.md` 编写完成

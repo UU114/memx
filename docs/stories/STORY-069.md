@@ -65,9 +65,9 @@ Federation Mode MVP（Sprint 6）已完成 Nominator 提名和 AceSyncClient 推
 ## Technical Notes
 
 ### Components
-- **File:** `memx/team/nominator.py` — 扩展 GovernanceClassifier 逻辑
-- **File:** `memx/team/cli.py` — 添加 `ace upvote/downvote` 命令
-- **File:** `memx/team/cache_storage.py` — effective_score 调整逻辑
+- **File:** `memorus/team/nominator.py` — 扩展 GovernanceClassifier 逻辑
+- **File:** `memorus/team/cli.py` — 添加 `ace upvote/downvote` 命令
+- **File:** `memorus/team/cache_storage.py` — effective_score 调整逻辑
 
 ### Governance Classification Logic
 ```python

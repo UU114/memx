@@ -1,4 +1,4 @@
-# STORY-037: 实现 MemXDaemon 服务端
+# STORY-037: 实现 MemorusDaemon 服务端
 
 **Epic:** EPIC-007 (本地 Embedding + Daemon)
 **Priority:** Should Have
@@ -21,7 +21,7 @@ So that Hook calls are fast and ONNX models stay loaded in memory
 ## Description
 
 ### Background
-每次 CLI Hook 调用都需要初始化 MemX（加载配置、ONNX 模型、向量索引等），冷启动可能需要 1-3 秒。MemXDaemon 是一个常驻后台进程，预加载所有重量级资源，通过 IPC 提供服务。多个 CLI Session 共享同一个 Daemon 实例，实现近乎零延迟的 Hook 调用。
+每次 CLI Hook 调用都需要初始化 Memorus（加载配置、ONNX 模型、向量索引等），冷启动可能需要 1-3 秒。MemorusDaemon 是一个常驻后台进程，预加载所有重量级资源，通过 IPC 提供服务。多个 CLI Session 共享同一个 Daemon 实例，实现近乎零延迟的 Hook 调用。
 
 ### Scope
 **In scope:**
@@ -42,10 +42,10 @@ So that Hook calls are fast and ONNX models stay loaded in memory
 
 ## Acceptance Criteria
 
-- [ ] `MemXDaemon` 可通过 `daemon.start()` 启动为后台进程
-- [ ] 启动时创建 PID 文件（`~/.memx/daemon.pid`），退出时删除
+- [ ] `MemorusDaemon` 可通过 `daemon.start()` 启动为后台进程
+- [ ] 启动时创建 PID 文件（`~/.memorus/daemon.pid`），退出时删除
 - [ ] PID 文件已存在且进程存活 → 拒绝重复启动，抛出明确错误
-- [ ] IPC 监听：Windows 使用 Named Pipe (`\\.\pipe\memx-daemon`)，Linux/Mac 使用 Unix Socket (`~/.memx/daemon.sock`)
+- [ ] IPC 监听：Windows 使用 Named Pipe (`\\.\pipe\memorus-daemon`)，Linux/Mac 使用 Unix Socket (`~/.memorus/daemon.sock`)
 - [ ] 支持 6 个 IPC 命令：`ping`, `recall`, `curate`, `session_register`, `session_unregister`, `shutdown`
 - [ ] `ping` → 返回 `{"status": "ok", "version": "1.0.0", "sessions": N}`
 - [ ] `recall` → 调用 Memory.search() 返回结果
@@ -60,13 +60,13 @@ So that Hook calls are fast and ONNX models stay loaded in memory
 ## Technical Notes
 
 ### Components
-- `memx/daemon/__init__.py` — 包入口
-- `memx/daemon/server.py` — MemXDaemon
+- `memorus/daemon/__init__.py` — 包入口
+- `memorus/daemon/server.py` — MemorusDaemon
 
 ### API Design
 
 ```python
-class MemXDaemon:
+class MemorusDaemon:
     def __init__(self, config: DaemonConfig):
         self._config = config
         self._memory: Memory | None = None
@@ -147,10 +147,10 @@ class DaemonResponse:
 
 ```python
 # Windows: Named Pipe
-PIPE_NAME = r"\\.\pipe\memx-daemon"
+PIPE_NAME = r"\\.\pipe\memorus-daemon"
 
 # Linux/Mac: Unix Socket
-SOCKET_PATH = Path("~/.memx/daemon.sock").expanduser()
+SOCKET_PATH = Path("~/.memorus/daemon.sock").expanduser()
 
 async def _start_ipc_server(self):
     if sys.platform == "win32":
@@ -166,9 +166,9 @@ async def _start_ipc_server(self):
 ```
 
 ### Dependencies on Existing Code
-- `memx/config.py:DaemonConfig` — 已定义（enabled, idle_timeout_seconds, socket_path）
-- `memx/memory.py:Memory` — search(), add() API
-- `memx/embeddings/onnx.py:ONNXEmbedder`（STORY-036）
+- `memorus/config.py:DaemonConfig` — 已定义（enabled, idle_timeout_seconds, socket_path）
+- `memorus/memory.py:Memory` — search(), add() API
+- `memorus/embeddings/onnx.py:ONNXEmbedder`（STORY-036）
 
 ### Edge Cases
 - Daemon 进程被 kill -9 → PID 文件残留 → 启动时检测进程是否存活，清理 stale PID
@@ -184,7 +184,7 @@ async def _start_ipc_server(self):
 
 **Prerequisite Stories:**
 - STORY-036: ONNXEmbedder Provider
-- STORY-004: MemXMemory Decorator ✓（已完成）
+- STORY-004: MemorusMemory Decorator ✓（已完成）
 
 **Blocked Stories:**
 - STORY-038: DaemonClient + IPC Transport
@@ -195,7 +195,7 @@ async def _start_ipc_server(self):
 
 ## Definition of Done
 
-- [ ] `memx/daemon/server.py` 实现 MemXDaemon
+- [ ] `memorus/daemon/server.py` 实现 MemorusDaemon
 - [ ] PID 文件管理正确（创建/清理/stale 检测）
 - [ ] IPC 6 个命令全部实现
 - [ ] 空闲超时自动退出

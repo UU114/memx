@@ -1,4 +1,4 @@
-"""Unit tests for memx.pipeline.retrieval — RetrievalPipeline + RecallReinforcer."""
+"""Unit tests for memorus.pipeline.retrieval — RetrievalPipeline + RecallReinforcer."""
 
 from __future__ import annotations
 
@@ -10,14 +10,14 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
-from memx.core.config import DecayConfig, RetrievalConfig
-from memx.core.engines.decay.engine import DecayEngine
-from memx.core.engines.generator.engine import BulletForSearch, GeneratorEngine
-from memx.core.engines.generator.metadata_matcher import MetadataInfo
-from memx.core.engines.generator.score_merger import ScoredBullet
-from memx.core.engines.generator.vector_searcher import VectorSearcher
-from memx.core.pipeline.retrieval import RecallReinforcer, RetrievalPipeline, SearchResult
-from memx.core.utils.token_counter import TokenBudgetTrimmer
+from memorus.core.config import DecayConfig, RetrievalConfig
+from memorus.core.engines.decay.engine import DecayEngine
+from memorus.core.engines.generator.engine import BulletForSearch, GeneratorEngine
+from memorus.core.engines.generator.metadata_matcher import MetadataInfo
+from memorus.core.engines.generator.score_merger import ScoredBullet
+from memorus.core.engines.generator.vector_searcher import VectorSearcher
+from memorus.core.pipeline.retrieval import RecallReinforcer, RetrievalPipeline, SearchResult
+from memorus.core.utils.token_counter import TokenBudgetTrimmer
 
 # ── Helper fixtures ──────────────────────────────────────────────────────
 
@@ -484,11 +484,11 @@ class TestMemorySearchACEPath:
 
     def test_memory_search_ace_path(self) -> None:
         """ACE enabled + pipeline exists -> returns ace_search dict."""
-        from memx.core.config import MemXConfig
-        from memx.core.memory import Memory
+        from memorus.core.config import MemorusConfig
+        from memorus.core.memory import Memory
 
         m = Memory.__new__(Memory)
-        m._config = MemXConfig(ace_enabled=True)
+        m._config = MemorusConfig(ace_enabled=True)
         m._mem0 = MagicMock()
         m._mem0.get_all.return_value = {"memories": []}
         m._mem0_init_error = None
@@ -515,11 +515,11 @@ class TestMemorySearchACEPath:
 
     def test_memory_search_ace_no_pipeline_falls_back(self) -> None:
         """ACE enabled but pipeline is None -> falls back to proxy."""
-        from memx.core.config import MemXConfig
-        from memx.core.memory import Memory
+        from memorus.core.config import MemorusConfig
+        from memorus.core.memory import Memory
 
         m = Memory.__new__(Memory)
-        m._config = MemXConfig(ace_enabled=True)
+        m._config = MemorusConfig(ace_enabled=True)
         m._mem0 = MagicMock()
         m._mem0.search.return_value = {"results": []}
         m._mem0_init_error = None
@@ -534,11 +534,11 @@ class TestMemorySearchACEPath:
 
     def test_memory_search_ace_failure_falls_back(self) -> None:
         """ACE search failure -> fallback to mem0 proxy."""
-        from memx.core.config import MemXConfig
-        from memx.core.memory import Memory
+        from memorus.core.config import MemorusConfig
+        from memorus.core.memory import Memory
 
         m = Memory.__new__(Memory)
-        m._config = MemXConfig(ace_enabled=True)
+        m._config = MemorusConfig(ace_enabled=True)
         m._mem0 = MagicMock()
         m._mem0.get_all.side_effect = RuntimeError("db error")
         m._mem0.search.return_value = {"results": []}
@@ -566,9 +566,9 @@ class TestIngestPipelineCuratorIntegration:
 
     def test_curator_dedup_adds_new(self) -> None:
         """Curator classifies candidate as 'to_add' -> bullet is written."""
-        from memx.core.engines.curator.engine import CurateResult, ExistingBullet
-        from memx.core.pipeline.ingest import IngestPipeline
-        from memx.core.types import BulletSection, CandidateBullet, KnowledgeType, SourceType
+        from memorus.core.engines.curator.engine import CurateResult, ExistingBullet
+        from memorus.core.pipeline.ingest import IngestPipeline
+        from memorus.core.types import BulletSection, CandidateBullet, KnowledgeType, SourceType
 
         candidate = CandidateBullet(
             content="new bullet content",
@@ -603,9 +603,9 @@ class TestIngestPipelineCuratorIntegration:
 
     def test_curator_dedup_skips(self) -> None:
         """Curator classifies candidate as 'to_skip' -> bullet not written."""
-        from memx.core.engines.curator.engine import CurateResult
-        from memx.core.pipeline.ingest import IngestPipeline
-        from memx.core.types import CandidateBullet
+        from memorus.core.engines.curator.engine import CurateResult
+        from memorus.core.pipeline.ingest import IngestPipeline
+        from memorus.core.types import CandidateBullet
 
         candidate = CandidateBullet(content="")
 
@@ -634,8 +634,8 @@ class TestIngestPipelineCuratorIntegration:
 
     def test_curator_failure_inserts_all(self) -> None:
         """Curator raises -> all candidates are inserted (graceful degradation)."""
-        from memx.core.pipeline.ingest import IngestPipeline
-        from memx.core.types import BulletSection, CandidateBullet, KnowledgeType, SourceType
+        from memorus.core.pipeline.ingest import IngestPipeline
+        from memorus.core.types import BulletSection, CandidateBullet, KnowledgeType, SourceType
 
         candidate = CandidateBullet(
             content="bullet content",
@@ -667,8 +667,8 @@ class TestIngestPipelineCuratorIntegration:
 
     def test_no_curator_skips_dedup(self) -> None:
         """No curator -> dedup step is skipped entirely."""
-        from memx.core.pipeline.ingest import IngestPipeline
-        from memx.core.types import BulletSection, CandidateBullet, KnowledgeType, SourceType
+        from memorus.core.pipeline.ingest import IngestPipeline
+        from memorus.core.types import BulletSection, CandidateBullet, KnowledgeType, SourceType
 
         candidate = CandidateBullet(
             content="bullet content",

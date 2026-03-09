@@ -1,4 +1,4 @@
-"""Unit tests for memx.engines.reflector.engine — ReflectorEngine."""
+"""Unit tests for memorus.engines.reflector.engine — ReflectorEngine."""
 
 from __future__ import annotations
 
@@ -8,10 +8,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from memx.core.config import ReflectorConfig
-from memx.core.engines.reflector.engine import ReflectorEngine
-from memx.core.privacy.sanitizer import PrivacySanitizer
-from memx.core.types import (
+from memorus.core.config import ReflectorConfig
+from memorus.core.engines.reflector.engine import ReflectorEngine
+from memorus.core.privacy.sanitizer import PrivacySanitizer
+from memorus.core.types import (
     BulletSection,
     CandidateBullet,
     DetectedPattern,
@@ -163,7 +163,7 @@ class TestModeLlm:
         """mode='llm' falls back to 'rules' when LLM init fails."""
         config = ReflectorConfig(mode="llm")
         with patch(
-            "memx.core.engines.reflector.engine.ReflectorEngine._init_llm_components",
+            "memorus.core.engines.reflector.engine.ReflectorEngine._init_llm_components",
             side_effect=RuntimeError("no litellm"),
         ):
             engine = ReflectorEngine.__new__(ReflectorEngine)
@@ -426,13 +426,13 @@ class TestLLMEvaluatorParsing:
     """Test LLMEvaluator._parse_response with mock JSON responses."""
 
     def _make_evaluator(self) -> object:
-        from memx.core.engines.reflector.llm_evaluator import LLMEvaluator
+        from memorus.core.engines.reflector.llm_evaluator import LLMEvaluator
 
         config = ReflectorConfig(mode="llm")
         return LLMEvaluator(config)
 
     def test_parse_valid_response(self) -> None:
-        from memx.core.engines.reflector.llm_evaluator import LLMEvaluator
+        from memorus.core.engines.reflector.llm_evaluator import LLMEvaluator
 
         evaluator: LLMEvaluator = self._make_evaluator()  # type: ignore[assignment]
         event = _error_event()
@@ -446,7 +446,7 @@ class TestLLMEvaluatorParsing:
         assert "rustup" in result.pattern.content
 
     def test_parse_should_record_false(self) -> None:
-        from memx.core.engines.reflector.llm_evaluator import LLMEvaluator
+        from memorus.core.engines.reflector.llm_evaluator import LLMEvaluator
 
         evaluator: LLMEvaluator = self._make_evaluator()  # type: ignore[assignment]
         event = _event()
@@ -455,7 +455,7 @@ class TestLLMEvaluatorParsing:
         assert result is None
 
     def test_parse_invalid_json(self) -> None:
-        from memx.core.engines.reflector.llm_evaluator import LLMEvaluator
+        from memorus.core.engines.reflector.llm_evaluator import LLMEvaluator
 
         evaluator: LLMEvaluator = self._make_evaluator()  # type: ignore[assignment]
         event = _event()
@@ -463,7 +463,7 @@ class TestLLMEvaluatorParsing:
         assert result is None
 
     def test_parse_markdown_fenced_json(self) -> None:
-        from memx.core.engines.reflector.llm_evaluator import LLMEvaluator
+        from memorus.core.engines.reflector.llm_evaluator import LLMEvaluator
 
         evaluator: LLMEvaluator = self._make_evaluator()  # type: ignore[assignment]
         event = _error_event()
@@ -473,7 +473,7 @@ class TestLLMEvaluatorParsing:
         assert result.knowledge_type == KnowledgeType.METHOD
 
     def test_parse_invalid_enum_values_fallback(self) -> None:
-        from memx.core.engines.reflector.llm_evaluator import LLMEvaluator
+        from memorus.core.engines.reflector.llm_evaluator import LLMEvaluator
 
         evaluator: LLMEvaluator = self._make_evaluator()  # type: ignore[assignment]
         event = _event()
@@ -491,7 +491,7 @@ class TestLLMDistillerParsing:
     """Test LLMDistiller._parse_response with mock JSON responses."""
 
     def _make_distiller(self) -> object:
-        from memx.core.engines.reflector.llm_distiller import LLMDistiller
+        from memorus.core.engines.reflector.llm_distiller import LLMDistiller
 
         config = ReflectorConfig(mode="llm")
         return LLMDistiller(config)
@@ -510,7 +510,7 @@ class TestLLMDistillerParsing:
         )
 
     def test_parse_valid_response(self) -> None:
-        from memx.core.engines.reflector.llm_distiller import LLMDistiller
+        from memorus.core.engines.reflector.llm_distiller import LLMDistiller
 
         distiller: LLMDistiller = self._make_distiller()  # type: ignore[assignment]
         candidate = self._make_candidate()
@@ -526,7 +526,7 @@ class TestLLMDistillerParsing:
         assert result.instructivity_score == 80.0
 
     def test_parse_invalid_json_returns_none(self) -> None:
-        from memx.core.engines.reflector.llm_distiller import LLMDistiller
+        from memorus.core.engines.reflector.llm_distiller import LLMDistiller
 
         distiller: LLMDistiller = self._make_distiller()  # type: ignore[assignment]
         candidate = self._make_candidate()
@@ -534,7 +534,7 @@ class TestLLMDistillerParsing:
         assert result is None
 
     def test_fallback_distill(self) -> None:
-        from memx.core.engines.reflector.llm_distiller import LLMDistiller
+        from memorus.core.engines.reflector.llm_distiller import LLMDistiller
 
         distiller: LLMDistiller = self._make_distiller()  # type: ignore[assignment]
         candidate = self._make_candidate()

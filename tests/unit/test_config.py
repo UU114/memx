@@ -1,4 +1,4 @@
-"""Unit tests for memx.config — MemXConfig and all sub-config models."""
+"""Unit tests for memorus.config — MemorusConfig and all sub-config models."""
 
 from __future__ import annotations
 
@@ -7,27 +7,27 @@ import warnings
 import pytest
 from pydantic import ValidationError
 
-from memx.core.config import (
+from memorus.core.config import (
     CuratorConfig,
     DaemonConfig,
     DecayConfig,
     IntegrationConfig,
-    MemXConfig,
+    MemorusConfig,
     PrivacyConfig,
     ReflectorConfig,
     RetrievalConfig,
 )
-from memx.core.exceptions import ConfigurationError
+from memorus.core.exceptions import ConfigurationError
 
 
 # ── Default construction ───────────────────────────────────────────────
 
 
-class TestMemXConfigDefaults:
-    """MemXConfig() with no args must succeed and carry sensible defaults."""
+class TestMemorusConfigDefaults:
+    """MemorusConfig() with no args must succeed and carry sensible defaults."""
 
     def test_zero_arg_construction(self) -> None:
-        cfg = MemXConfig()
+        cfg = MemorusConfig()
         assert cfg.ace_enabled is False
         assert isinstance(cfg.reflector, ReflectorConfig)
         assert isinstance(cfg.curator, CuratorConfig)
@@ -39,7 +39,7 @@ class TestMemXConfigDefaults:
         assert cfg.mem0_config == {}
 
     def test_ace_enabled_default_false(self) -> None:
-        assert MemXConfig().ace_enabled is False
+        assert MemorusConfig().ace_enabled is False
 
 
 # ── Sub-config defaults ───────────────────────────────────────────────
@@ -212,17 +212,17 @@ class TestDaemonValidation:
 
 class TestFromDict:
     def test_empty_dict(self) -> None:
-        cfg = MemXConfig.from_dict({})
+        cfg = MemorusConfig.from_dict({})
         assert cfg.ace_enabled is False
         assert cfg.mem0_config == {}
 
     def test_ace_enabled_true(self) -> None:
-        cfg = MemXConfig.from_dict({"ace_enabled": True})
+        cfg = MemorusConfig.from_dict({"ace_enabled": True})
         assert cfg.ace_enabled is True
         assert cfg.mem0_config == {}
 
     def test_mem0_fields_separated(self) -> None:
-        cfg = MemXConfig.from_dict({
+        cfg = MemorusConfig.from_dict({
             "vector_store": {"provider": "qdrant", "config": {"host": "localhost"}},
             "llm": {"provider": "openai", "config": {"model": "gpt-4"}},
         })
@@ -231,7 +231,7 @@ class TestFromDict:
         assert cfg.mem0_config["vector_store"]["provider"] == "qdrant"
 
     def test_mixed_ace_and_mem0_fields(self) -> None:
-        cfg = MemXConfig.from_dict({
+        cfg = MemorusConfig.from_dict({
             "ace_enabled": True,
             "reflector": {"mode": "hybrid", "min_score": 50.0},
             "decay": {"half_life_days": 14.0},
@@ -251,11 +251,11 @@ class TestFromDict:
 
     def test_invalid_values_raise_configuration_error(self) -> None:
         with pytest.raises(ConfigurationError, match="Invalid configuration"):
-            MemXConfig.from_dict({"decay": {"half_life_days": -5}})
+            MemorusConfig.from_dict({"decay": {"half_life_days": -5}})
 
     def test_invalid_reflector_mode_raises_configuration_error(self) -> None:
         with pytest.raises(ConfigurationError, match="Invalid configuration"):
-            MemXConfig.from_dict({"reflector": {"mode": "turbo"}})
+            MemorusConfig.from_dict({"reflector": {"mode": "turbo"}})
 
     def test_all_ace_keys_recognized(self) -> None:
         """Every known ACE key should be extracted, not put into mem0_config."""
@@ -270,7 +270,7 @@ class TestFromDict:
             "daemon",
         ]
         input_dict = {k: {} if k != "ace_enabled" else True for k in ace_keys}
-        cfg = MemXConfig.from_dict(input_dict)
+        cfg = MemorusConfig.from_dict(input_dict)
         assert cfg.mem0_config == {}
 
 
@@ -279,7 +279,7 @@ class TestFromDict:
 
 class TestToMem0Config:
     def test_returns_mem0_fields(self) -> None:
-        cfg = MemXConfig.from_dict({
+        cfg = MemorusConfig.from_dict({
             "vector_store": {"provider": "qdrant"},
             "embedder": {"provider": "openai"},
         })
@@ -290,14 +290,14 @@ class TestToMem0Config:
         }
 
     def test_returns_copy(self) -> None:
-        cfg = MemXConfig.from_dict({"vector_store": {"provider": "qdrant"}})
+        cfg = MemorusConfig.from_dict({"vector_store": {"provider": "qdrant"}})
         m0 = cfg.to_mem0_config()
         m0["extra"] = "injected"
         # Original should be unaffected
         assert "extra" not in cfg.mem0_config
 
     def test_empty_when_no_mem0_fields(self) -> None:
-        cfg = MemXConfig.from_dict({"ace_enabled": True})
+        cfg = MemorusConfig.from_dict({"ace_enabled": True})
         assert cfg.to_mem0_config() == {}
 
 
@@ -309,7 +309,7 @@ class TestWeightWarning:
         """Default 0.6 + 0.4 = 1.0 should not warn."""
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            MemXConfig()
+            MemorusConfig()
         weight_warnings = [x for x in w if "keyword_weight" in str(x.message)]
         assert len(weight_warnings) == 0
 
@@ -317,7 +317,7 @@ class TestWeightWarning:
         """keyword_weight + semantic_weight != 1.0 should warn."""
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            MemXConfig(retrieval=RetrievalConfig(keyword_weight=0.5, semantic_weight=0.3))
+            MemorusConfig(retrieval=RetrievalConfig(keyword_weight=0.5, semantic_weight=0.3))
         weight_warnings = [x for x in w if "keyword_weight" in str(x.message)]
         assert len(weight_warnings) == 1
         assert "not 1.0" in str(weight_warnings[0].message)
@@ -327,7 +327,7 @@ class TestWeightWarning:
         """Unbalanced weights warn but do NOT raise."""
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("always")
-            cfg = MemXConfig(
+            cfg = MemorusConfig(
                 retrieval=RetrievalConfig(keyword_weight=0.7, semantic_weight=0.7)
             )
         assert cfg.retrieval.keyword_weight == 0.7
@@ -337,7 +337,7 @@ class TestWeightWarning:
         """0.6 + 0.4 = 1.0 exactly, no warning."""
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            MemXConfig(retrieval=RetrievalConfig(keyword_weight=0.6, semantic_weight=0.4))
+            MemorusConfig(retrieval=RetrievalConfig(keyword_weight=0.6, semantic_weight=0.4))
         weight_warnings = [x for x in w if "keyword_weight" in str(x.message)]
         assert len(weight_warnings) == 0
 
@@ -350,17 +350,17 @@ class TestReflectorModeValidation:
         with pytest.raises(ValidationError, match="reflector.mode"):
             ReflectorConfig(mode="nonexistent")
 
-    def test_invalid_mode_via_memx_config(self) -> None:
+    def test_invalid_mode_via_memorus_config(self) -> None:
         with pytest.raises(ValidationError, match="reflector.mode"):
-            MemXConfig(reflector=ReflectorConfig(mode="bad"))
+            MemorusConfig(reflector=ReflectorConfig(mode="bad"))
 
     def test_invalid_mode_via_from_dict(self) -> None:
         with pytest.raises(ConfigurationError):
-            MemXConfig.from_dict({"reflector": {"mode": "bad"}})
+            MemorusConfig.from_dict({"reflector": {"mode": "bad"}})
 
     def test_all_valid_modes(self) -> None:
         for mode in ("rules", "llm", "hybrid"):
-            cfg = MemXConfig(reflector=ReflectorConfig(mode=mode))
+            cfg = MemorusConfig(reflector=ReflectorConfig(mode=mode))
             assert cfg.reflector.mode == mode
 
 
@@ -369,23 +369,23 @@ class TestReflectorModeValidation:
 
 class TestConfigSerialization:
     def test_model_dump_round_trip(self) -> None:
-        original = MemXConfig(
+        original = MemorusConfig(
             ace_enabled=True,
             reflector=ReflectorConfig(mode="hybrid", min_score=45.0),
             decay=DecayConfig(half_life_days=14.0),
         )
         d = original.model_dump()
-        restored = MemXConfig.model_validate(d)
+        restored = MemorusConfig.model_validate(d)
         assert restored.ace_enabled is True
         assert restored.reflector.mode == "hybrid"
         assert restored.reflector.min_score == 45.0
         assert restored.decay.half_life_days == 14.0
 
     def test_json_round_trip(self) -> None:
-        original = MemXConfig(
+        original = MemorusConfig(
             ace_enabled=True,
             privacy=PrivacyConfig(custom_patterns=[r"\bAPI_KEY\b"]),
         )
         json_str = original.model_dump_json()
-        restored = MemXConfig.model_validate_json(json_str)
+        restored = MemorusConfig.model_validate_json(json_str)
         assert restored.privacy.custom_patterns == [r"\bAPI_KEY\b"]

@@ -27,19 +27,19 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from memx.core.config import DaemonConfig, MemXConfig
-from memx.core.daemon import (
+from memorus.core.config import DaemonConfig, MemorusConfig
+from memorus.core.daemon import (
     DaemonClient,
     DaemonFallbackManager,
     DaemonRequest,
     DaemonResponse,
     IPCTransport,
-    MemXDaemon,
+    MemorusDaemon,
     NamedPipeTransport,
     UnixSocketTransport,
     get_transport,
 )
-from memx.core.daemon.server import (
+from memorus.core.daemon.server import (
     DEFAULT_IDLE_TIMEOUT,
     MAX_REQUEST_SIZE,
     PID_PATH,
@@ -47,8 +47,8 @@ from memx.core.daemon.server import (
     SOCKET_PATH,
     _is_process_alive,
 )
-from memx.core.exceptions import DaemonError, DaemonUnavailableError
-from memx.core.memory import Memory
+from memorus.core.exceptions import DaemonError, DaemonUnavailableError
+from memorus.core.memory import Memory
 
 
 # ---------------------------------------------------------------------------
@@ -82,20 +82,20 @@ class MockTransport(IPCTransport):
 def _make_daemon(
     idle_timeout: int = 2,
     socket_path: str | None = None,
-) -> MemXDaemon:
-    """Create a MemXDaemon with a short idle timeout for testing."""
+) -> MemorusDaemon:
+    """Create a MemorusDaemon with a short idle timeout for testing."""
     config = DaemonConfig(
         enabled=True,
         idle_timeout_seconds=idle_timeout,
         socket_path=socket_path,
     )
-    return MemXDaemon(config=config)
+    return MemorusDaemon(config=config)
 
 
 def _make_memory_with_daemon(daemon_available: bool = True) -> Memory:
     """Create a Memory instance with daemon fallback wired up (mocked)."""
     m = Memory.__new__(Memory)
-    m._config = MemXConfig(daemon=DaemonConfig(enabled=True))
+    m._config = MemorusConfig(daemon=DaemonConfig(enabled=True))
     m._mem0 = MagicMock()
     m._mem0_init_error = None
     m._mem0.add.return_value = {"results": [{"id": "d1", "memory": "direct-add"}]}
@@ -218,7 +218,7 @@ class TestServerClientRoundTrip:
         parsed = json.loads(resp_json)
         client_resp = DaemonResponse(**parsed)
         assert client_resp.status == "ok"
-        assert client_resp.data["version"] == "1.0.0"
+        assert client_resp.data["version"] == "0.2.1"
 
     async def test_recall_round_trip(self) -> None:
         """Recall request/response serializes correctly across client-server boundary."""
@@ -459,7 +459,7 @@ class TestPIDEdgeCases:
         daemon = _make_daemon()
         with (
             patch.object(type(daemon), "pid_path", new=property(lambda s: pid_path)),
-            patch("memx.core.daemon.server._is_process_alive", return_value=False),
+            patch("memorus.core.daemon.server._is_process_alive", return_value=False),
         ):
             daemon._check_pid()
             assert not pid_path.exists()
@@ -484,15 +484,15 @@ class TestPIDEdgeCases:
         """Class-level is_daemon_running handles corrupt PID file."""
         pid_path = tmp_path / "daemon.pid"
         pid_path.write_text("corrupt_data")
-        with patch("memx.core.daemon.server.PID_PATH", pid_path):
-            assert MemXDaemon.is_daemon_running() is False
+        with patch("memorus.core.daemon.server.PID_PATH", pid_path):
+            assert MemorusDaemon.is_daemon_running() is False
 
     def test_read_pid_with_extra_whitespace(self, tmp_path: Path) -> None:
         """Read PID handles leading/trailing whitespace."""
         pid_path = tmp_path / "daemon.pid"
         pid_path.write_text("  42  \n")
-        with patch("memx.core.daemon.server.PID_PATH", pid_path):
-            assert MemXDaemon.read_pid() == 42
+        with patch("memorus.core.daemon.server.PID_PATH", pid_path):
+            assert MemorusDaemon.read_pid() == 42
 
 
 # ===========================================================================
@@ -619,7 +619,7 @@ class TestConfigPropagation:
     def test_transport_factory_with_custom_config(self) -> None:
         """get_transport passes socket_path from config to the transport."""
         config = DaemonConfig(socket_path="/tmp/custom.sock")
-        with patch("memx.core.daemon.ipc.sys") as mock_sys:
+        with patch("memorus.core.daemon.ipc.sys") as mock_sys:
             mock_sys.platform = "linux"
             transport = get_transport(config)
             assert isinstance(transport, UnixSocketTransport)
@@ -628,7 +628,7 @@ class TestConfigPropagation:
     def test_transport_factory_windows_custom_pipe(self) -> None:
         """get_transport passes custom pipe name on Windows."""
         config = DaemonConfig(socket_path=r"\\.\pipe\custom")
-        with patch("memx.core.daemon.ipc.sys") as mock_sys:
+        with patch("memorus.core.daemon.ipc.sys") as mock_sys:
             mock_sys.platform = "win32"
             transport = get_transport(config)
             assert isinstance(transport, NamedPipeTransport)
@@ -814,7 +814,7 @@ class TestMemoryDaemonIntegration:
     def test_daemon_available_property_no_fallback(self) -> None:
         """Memory.daemon_available returns False when no fallback manager."""
         m = Memory.__new__(Memory)
-        m._config = MemXConfig()
+        m._config = MemorusConfig()
         m._daemon_fallback = None
         assert m.daemon_available is False
 
@@ -883,7 +883,7 @@ class TestServerLifecycleEdgeCases:
         pid_path.write_text("12345")
         with (
             patch.object(type(daemon), "pid_path", new=property(lambda s: pid_path)),
-            patch("memx.core.daemon.server._is_process_alive", return_value=True),
+            patch("memorus.core.daemon.server._is_process_alive", return_value=True),
         ):
             with pytest.raises(DaemonError, match="already running"):
                 await daemon.start()
@@ -1072,8 +1072,8 @@ class TestDaemonExports:
     """Verify daemon __init__.py exports all expected symbols."""
 
     def test_all_exports_present(self) -> None:
-        """All expected public classes/functions are exported from memx.core.daemon."""
-        from memx.core import daemon
+        """All expected public classes/functions are exported from memorus.core.daemon."""
+        from memorus.core import daemon
 
         expected = [
             "DaemonClient",
@@ -1081,7 +1081,7 @@ class TestDaemonExports:
             "DaemonRequest",
             "DaemonResponse",
             "IPCTransport",
-            "MemXDaemon",
+            "MemorusDaemon",
             "NamedPipeTransport",
             "UnixSocketTransport",
             "get_transport",
@@ -1091,7 +1091,7 @@ class TestDaemonExports:
 
     def test_all_list_matches_exports(self) -> None:
         """__all__ contains exactly the expected public names."""
-        from memx.core.daemon import __all__
+        from memorus.core.daemon import __all__
 
         assert set(__all__) == {
             "DaemonClient",
@@ -1099,7 +1099,7 @@ class TestDaemonExports:
             "DaemonRequest",
             "DaemonResponse",
             "IPCTransport",
-            "MemXDaemon",
+            "MemorusDaemon",
             "NamedPipeTransport",
             "UnixSocketTransport",
             "get_transport",
@@ -1114,10 +1114,10 @@ class TestDaemonExports:
 class TestExceptionHierarchy:
     """Verify exception class relationships."""
 
-    def test_daemon_error_is_memx_error(self) -> None:
-        from memx.core.exceptions import MemXError
+    def test_daemon_error_is_memorus_error(self) -> None:
+        from memorus.core.exceptions import MemorusError
 
-        assert issubclass(DaemonError, MemXError)
+        assert issubclass(DaemonError, MemorusError)
 
     def test_daemon_unavailable_is_daemon_error(self) -> None:
         assert issubclass(DaemonUnavailableError, DaemonError)
@@ -1125,10 +1125,10 @@ class TestExceptionHierarchy:
     def test_daemon_unavailable_is_connection_error(self) -> None:
         assert issubclass(DaemonUnavailableError, ConnectionError)
 
-    def test_daemon_unavailable_catchable_as_memx_error(self) -> None:
-        from memx.core.exceptions import MemXError
+    def test_daemon_unavailable_catchable_as_memorus_error(self) -> None:
+        from memorus.core.exceptions import MemorusError
 
-        with pytest.raises(MemXError):
+        with pytest.raises(MemorusError):
             raise DaemonUnavailableError("test")
 
     def test_daemon_error_message_preserved(self) -> None:
@@ -1148,7 +1148,7 @@ class TestPlatformBranching:
         """On Windows without custom path, returns PIPE_NAME."""
         daemon = _make_daemon()
         daemon._config = DaemonConfig()
-        with patch("memx.core.daemon.server.sys") as mock_sys:
+        with patch("memorus.core.daemon.server.sys") as mock_sys:
             mock_sys.platform = "win32"
             assert daemon.ipc_address == PIPE_NAME
 
@@ -1156,7 +1156,7 @@ class TestPlatformBranching:
         """On Linux without custom path, returns SOCKET_PATH."""
         daemon = _make_daemon()
         daemon._config = DaemonConfig()
-        with patch("memx.core.daemon.server.sys") as mock_sys:
+        with patch("memorus.core.daemon.server.sys") as mock_sys:
             mock_sys.platform = "linux"
             assert daemon.ipc_address == str(SOCKET_PATH)
 
@@ -1167,7 +1167,7 @@ class TestPlatformBranching:
 
     def test_get_transport_darwin(self) -> None:
         """macOS uses UnixSocketTransport."""
-        with patch("memx.core.daemon.ipc.sys") as mock_sys:
+        with patch("memorus.core.daemon.ipc.sys") as mock_sys:
             mock_sys.platform = "darwin"
             transport = get_transport()
             assert isinstance(transport, UnixSocketTransport)
@@ -1200,15 +1200,15 @@ class TestDaemonConfigValidation:
         with pytest.raises(ValidationError):
             DaemonConfig(idle_timeout_seconds=0)
 
-    def test_memx_config_includes_daemon(self) -> None:
-        """MemXConfig.daemon defaults to DaemonConfig."""
-        config = MemXConfig()
+    def test_memorus_config_includes_daemon(self) -> None:
+        """MemorusConfig.daemon defaults to DaemonConfig."""
+        config = MemorusConfig()
         assert isinstance(config.daemon, DaemonConfig)
         assert config.daemon.enabled is False
 
-    def test_memx_config_from_dict_with_daemon(self) -> None:
-        """DaemonConfig can be set through MemXConfig.from_dict."""
-        config = MemXConfig.from_dict({"daemon": {"enabled": True, "idle_timeout_seconds": 120}})
+    def test_memorus_config_from_dict_with_daemon(self) -> None:
+        """DaemonConfig can be set through MemorusConfig.from_dict."""
+        config = MemorusConfig.from_dict({"daemon": {"enabled": True, "idle_timeout_seconds": 120}})
         assert config.daemon.enabled is True
         assert config.daemon.idle_timeout_seconds == 120
 
@@ -1222,7 +1222,7 @@ class TestServerConstants:
     """Verify server-level constants are defined correctly."""
 
     def test_pipe_name(self) -> None:
-        assert PIPE_NAME == r"\\.\pipe\memx-daemon"
+        assert PIPE_NAME == r"\\.\pipe\memorus-daemon"
 
     def test_socket_path_in_home(self) -> None:
         assert "daemon.sock" in str(SOCKET_PATH)
@@ -1485,14 +1485,14 @@ class TestInitDaemonFallbackEdge:
 
     def test_init_when_daemon_disabled(self) -> None:
         m = Memory.__new__(Memory)
-        m._config = MemXConfig(daemon=DaemonConfig(enabled=False))
+        m._config = MemorusConfig(daemon=DaemonConfig(enabled=False))
         m._daemon_fallback = None
         m._init_daemon_fallback()
         assert m._daemon_fallback is None
 
     def test_init_when_daemon_enabled_but_unreachable(self) -> None:
         m = Memory.__new__(Memory)
-        m._config = MemXConfig(daemon=DaemonConfig(enabled=True))
+        m._config = MemorusConfig(daemon=DaemonConfig(enabled=True))
         m._daemon_fallback = None
         with patch.object(DaemonClient, "ping", new_callable=AsyncMock, return_value=False):
             m._init_daemon_fallback()
@@ -1501,10 +1501,10 @@ class TestInitDaemonFallbackEdge:
 
     def test_init_daemon_fallback_import_error(self) -> None:
         m = Memory.__new__(Memory)
-        m._config = MemXConfig(daemon=DaemonConfig(enabled=True))
+        m._config = MemorusConfig(daemon=DaemonConfig(enabled=True))
         m._daemon_fallback = None
         with patch(
-            "memx.core.daemon.fallback.DaemonFallbackManager",
+            "memorus.core.daemon.fallback.DaemonFallbackManager",
             side_effect=ImportError("no module"),
         ):
             m._init_daemon_fallback()
@@ -1512,10 +1512,10 @@ class TestInitDaemonFallbackEdge:
 
     def test_init_daemon_fallback_runtime_error(self) -> None:
         m = Memory.__new__(Memory)
-        m._config = MemXConfig(daemon=DaemonConfig(enabled=True))
+        m._config = MemorusConfig(daemon=DaemonConfig(enabled=True))
         m._daemon_fallback = None
         with patch(
-            "memx.core.daemon.fallback.DaemonFallbackManager",
+            "memorus.core.daemon.fallback.DaemonFallbackManager",
             side_effect=RuntimeError("broken"),
         ):
             m._init_daemon_fallback()

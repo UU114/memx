@@ -1,4 +1,4 @@
-"""Unit tests for memx.team.cli — team status, sync, and nomination CLI commands."""
+"""Unit tests for memorus.team.cli — team status, sync, and nomination CLI commands."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from click.testing import CliRunner
 
-from memx.team.cli import nominate_group, team_group
-from memx.team.config import AutoNominateConfig, TeamConfig
+from memorus.team.cli import nominate_group, team_group
+from memorus.team.config import AutoNominateConfig, TeamConfig
 
 
 # ---------------------------------------------------------------------------
@@ -54,7 +54,7 @@ def enabled_config_no_server() -> TeamConfig:
 # Helper: patch _ensure_team_enabled
 # ---------------------------------------------------------------------------
 
-_ENSURE = "memx.team.cli._ensure_team_enabled"
+_ENSURE = "memorus.team.cli._ensure_team_enabled"
 
 
 # ---------------------------------------------------------------------------
@@ -67,7 +67,7 @@ class TestTeamStatus:
 
     def test_status_team_not_enabled(self, runner: CliRunner) -> None:
         """When team is not enabled, show friendly error and exit 1."""
-        with patch(_ENSURE, return_value=(None, "Team features not enabled. Set 'enabled: true' in team_config.yaml or MEMX_TEAM_ENABLED=true")):
+        with patch(_ENSURE, return_value=(None, "Team features not enabled. Set 'enabled: true' in team_config.yaml or MEMORUS_TEAM_ENABLED=true")):
             result = runner.invoke(team_group, ["status"])
         assert result.exit_code != 0
         assert "Team features not enabled" in result.output or "Team features not enabled" in (result.stderr_bytes or b"").decode("utf-8", errors="replace")
@@ -92,7 +92,7 @@ class TestTeamStatus:
         with (
             patch(_ENSURE, return_value=(enabled_config, None)),
             patch(
-                "memx.team.cache_storage.TeamCacheStorage",
+                "memorus.team.cache_storage.TeamCacheStorage",
                 return_value=mock_cache,
             ),
         ):
@@ -114,7 +114,7 @@ class TestTeamStatus:
         with (
             patch(_ENSURE, return_value=(enabled_config_no_server, None)),
             patch(
-                "memx.team.cache_storage.TeamCacheStorage",
+                "memorus.team.cache_storage.TeamCacheStorage",
                 return_value=mock_cache,
             ),
         ):
@@ -134,7 +134,7 @@ class TestTeamStatus:
         with (
             patch(_ENSURE, return_value=(enabled_config, None)),
             patch(
-                "memx.team.cache_storage.TeamCacheStorage",
+                "memorus.team.cache_storage.TeamCacheStorage",
                 return_value=mock_cache,
             ),
         ):
@@ -154,7 +154,7 @@ class TestTeamStatus:
         with (
             patch(_ENSURE, return_value=(enabled_config, None)),
             patch(
-                "memx.team.cache_storage.TeamCacheStorage",
+                "memorus.team.cache_storage.TeamCacheStorage",
                 side_effect=RuntimeError("cache broken"),
             ),
         ):
@@ -176,7 +176,7 @@ class TestTeamStatus:
         with (
             patch(_ENSURE, return_value=(enabled_config_no_server, None)),
             patch(
-                "memx.team.cache_storage.TeamCacheStorage",
+                "memorus.team.cache_storage.TeamCacheStorage",
                 return_value=mock_cache,
             ),
         ):
@@ -232,9 +232,9 @@ class TestTeamSync:
 
         with (
             patch(_ENSURE, return_value=(enabled_config, None)),
-            patch("memx.team.cache_storage.TeamCacheStorage", return_value=mock_cache),
-            patch("memx.team.sync_client.AceSyncClient"),
-            patch("memx.team.sync_manager.SyncManager", return_value=mock_manager),
+            patch("memorus.team.cache_storage.TeamCacheStorage", return_value=mock_cache),
+            patch("memorus.team.sync_client.AceSyncClient"),
+            patch("memorus.team.sync_manager.SyncManager", return_value=mock_manager),
         ):
             result = runner.invoke(team_group, ["sync"])
 
@@ -256,9 +256,9 @@ class TestTeamSync:
 
         with (
             patch(_ENSURE, return_value=(enabled_config, None)),
-            patch("memx.team.cache_storage.TeamCacheStorage", return_value=mock_cache),
-            patch("memx.team.sync_client.AceSyncClient"),
-            patch("memx.team.sync_manager.SyncManager", return_value=mock_manager),
+            patch("memorus.team.cache_storage.TeamCacheStorage", return_value=mock_cache),
+            patch("memorus.team.sync_client.AceSyncClient"),
+            patch("memorus.team.sync_manager.SyncManager", return_value=mock_manager),
         ):
             result = runner.invoke(team_group, ["sync", "--full"])
 
@@ -279,9 +279,9 @@ class TestTeamSync:
 
         with (
             patch(_ENSURE, return_value=(enabled_config, None)),
-            patch("memx.team.cache_storage.TeamCacheStorage", return_value=mock_cache),
-            patch("memx.team.sync_client.AceSyncClient"),
-            patch("memx.team.sync_manager.SyncManager", return_value=mock_manager),
+            patch("memorus.team.cache_storage.TeamCacheStorage", return_value=mock_cache),
+            patch("memorus.team.sync_client.AceSyncClient"),
+            patch("memorus.team.sync_manager.SyncManager", return_value=mock_manager),
         ):
             result = runner.invoke(team_group, ["sync", "--json"])
 
@@ -298,7 +298,7 @@ class TestTeamSync:
         with (
             patch(_ENSURE, return_value=(enabled_config, None)),
             patch(
-                "memx.team.cache_storage.TeamCacheStorage",
+                "memorus.team.cache_storage.TeamCacheStorage",
                 side_effect=RuntimeError("connection lost"),
             ),
         ):
@@ -331,7 +331,7 @@ class TestNominateList:
 
         with (
             patch(_ENSURE, return_value=(enabled_config, None)),
-            patch("memx.team.nominator.Nominator", return_value=mock_nominator),
+            patch("memorus.team.nominator.Nominator", return_value=mock_nominator),
         ):
             result = runner.invoke(nominate_group, ["list"])
 
@@ -359,7 +359,7 @@ class TestNominateList:
 
         with (
             patch(_ENSURE, return_value=(enabled_config, None)),
-            patch("memx.team.nominator.Nominator", return_value=mock_nominator),
+            patch("memorus.team.nominator.Nominator", return_value=mock_nominator),
         ):
             result = runner.invoke(nominate_group, ["list"])
 
@@ -380,7 +380,7 @@ class TestNominateList:
 
         with (
             patch(_ENSURE, return_value=(enabled_config, None)),
-            patch("memx.team.nominator.Nominator", return_value=mock_nominator),
+            patch("memorus.team.nominator.Nominator", return_value=mock_nominator),
         ):
             result = runner.invoke(nominate_group, ["list", "--json"])
 
@@ -399,7 +399,7 @@ class TestNominateList:
 
         with (
             patch(_ENSURE, return_value=(enabled_config, None)),
-            patch("memx.team.nominator.Nominator", return_value=mock_nominator),
+            patch("memorus.team.nominator.Nominator", return_value=mock_nominator),
         ):
             result = runner.invoke(nominate_group, ["list", "--json"])
 
@@ -461,10 +461,10 @@ class TestEnsureTeamEnabled:
 
     def test_returns_config_when_enabled(self) -> None:
         """Returns (config, None) when team is enabled."""
-        from memx.team.cli import _ensure_team_enabled
+        from memorus.team.cli import _ensure_team_enabled
 
         tc = TeamConfig(enabled=True, server_url="https://x.com")
-        with patch("memx.team.config.load_team_config", return_value=tc):
+        with patch("memorus.team.config.load_team_config", return_value=tc):
             config, err = _ensure_team_enabled()
 
         assert config is not None
@@ -473,10 +473,10 @@ class TestEnsureTeamEnabled:
 
     def test_returns_error_when_disabled(self) -> None:
         """Returns (None, error_msg) when team is disabled."""
-        from memx.team.cli import _ensure_team_enabled
+        from memorus.team.cli import _ensure_team_enabled
 
         tc = TeamConfig(enabled=False)
-        with patch("memx.team.config.load_team_config", return_value=tc):
+        with patch("memorus.team.config.load_team_config", return_value=tc):
             config, err = _ensure_team_enabled()
 
         assert config is None
@@ -485,10 +485,10 @@ class TestEnsureTeamEnabled:
 
     def test_returns_error_on_exception(self) -> None:
         """Returns (None, error_msg) when config loading fails."""
-        from memx.team.cli import _ensure_team_enabled
+        from memorus.team.cli import _ensure_team_enabled
 
         with patch(
-            "memx.team.config.load_team_config",
+            "memorus.team.config.load_team_config",
             side_effect=RuntimeError("bad yaml"),
         ):
             config, err = _ensure_team_enabled()

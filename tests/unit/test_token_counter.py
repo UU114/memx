@@ -1,11 +1,11 @@
-"""Unit tests for memx.utils.token_counter — TokenBudgetTrimmer."""
+"""Unit tests for memorus.utils.token_counter — TokenBudgetTrimmer."""
 
 from __future__ import annotations
 
 import pytest
 
-from memx.core.engines.generator.score_merger import ScoredBullet
-from memx.core.utils.token_counter import TokenBudgetTrimmer
+from memorus.core.engines.generator.score_merger import ScoredBullet
+from memorus.core.utils.token_counter import TokenBudgetTrimmer
 
 
 # ── Helper factories ────────────────────────────────────────────────────

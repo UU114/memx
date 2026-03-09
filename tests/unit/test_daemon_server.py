@@ -1,4 +1,4 @@
-"""Unit tests for memx.daemon.server -- MemXDaemon.
+"""Unit tests for memorus.daemon.server -- MemorusDaemon.
 
 All file I/O and Memory are mocked so tests run fast with no side effects.
 """
@@ -15,15 +15,15 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from memx.core.config import DaemonConfig
-from memx.core.daemon.server import (
+from memorus.core.config import DaemonConfig
+from memorus.core.daemon.server import (
     PIPE_NAME,
     DaemonRequest,
     DaemonResponse,
-    MemXDaemon,
+    MemorusDaemon,
     _is_process_alive,
 )
-from memx.core.exceptions import DaemonError
+from memorus.core.exceptions import DaemonError
 
 
 # ---------------------------------------------------------------------------
@@ -38,9 +38,9 @@ def daemon_config() -> DaemonConfig:
 
 
 @pytest.fixture()
-def daemon(daemon_config: DaemonConfig) -> MemXDaemon:
-    """Return a MemXDaemon instance (not started)."""
-    return MemXDaemon(config=daemon_config)
+def daemon(daemon_config: DaemonConfig) -> MemorusDaemon:
+    """Return a MemorusDaemon instance (not started)."""
+    return MemorusDaemon(config=daemon_config)
 
 
 @pytest.fixture()
@@ -97,10 +97,10 @@ class TestDaemonResponse:
     """Tests for DaemonResponse serialization."""
 
     def test_ok_response_to_json(self) -> None:
-        resp = DaemonResponse(status="ok", data={"version": "1.0.0"})
+        resp = DaemonResponse(status="ok", data={"version": "0.2.1"})
         parsed = json.loads(resp.to_json())
         assert parsed["status"] == "ok"
-        assert parsed["data"]["version"] == "1.0.0"
+        assert parsed["data"]["version"] == "0.2.1"
         assert "error" not in parsed
 
     def test_error_response_to_json(self) -> None:
@@ -124,7 +124,7 @@ class TestPIDManagement:
     """Tests for PID file create/check/remove/stale detection."""
 
     def test_write_pid_creates_file(
-        self, daemon: MemXDaemon, tmp_path: Path
+        self, daemon: MemorusDaemon, tmp_path: Path
     ) -> None:
         pid_path = tmp_path / "test.pid"
         with patch.object(type(daemon), "pid_path", new=property(lambda s: pid_path)):
@@ -133,7 +133,7 @@ class TestPIDManagement:
             assert int(pid_path.read_text()) == os.getpid()
 
     def test_remove_pid_deletes_file(
-        self, daemon: MemXDaemon, tmp_path: Path
+        self, daemon: MemorusDaemon, tmp_path: Path
     ) -> None:
         pid_path = tmp_path / "test.pid"
         pid_path.write_text("12345")
@@ -142,49 +142,49 @@ class TestPIDManagement:
             assert not pid_path.exists()
 
     def test_remove_pid_no_file_is_safe(
-        self, daemon: MemXDaemon, tmp_path: Path
+        self, daemon: MemorusDaemon, tmp_path: Path
     ) -> None:
         pid_path = tmp_path / "nonexistent.pid"
         with patch.object(type(daemon), "pid_path", new=property(lambda s: pid_path)):
             daemon._remove_pid()  # Should not raise
 
     def test_check_pid_no_file_passes(
-        self, daemon: MemXDaemon, tmp_path: Path
+        self, daemon: MemorusDaemon, tmp_path: Path
     ) -> None:
         pid_path = tmp_path / "no.pid"
         with patch.object(type(daemon), "pid_path", new=property(lambda s: pid_path)):
             daemon._check_pid()  # Should not raise
 
     def test_check_pid_stale_cleans_up(
-        self, daemon: MemXDaemon, tmp_path: Path
+        self, daemon: MemorusDaemon, tmp_path: Path
     ) -> None:
         pid_path = tmp_path / "stale.pid"
         pid_path.write_text("99999999")  # very unlikely to be alive
         with (
             patch.object(type(daemon), "pid_path", new=property(lambda s: pid_path)),
             patch(
-                "memx.core.daemon.server._is_process_alive", return_value=False
+                "memorus.core.daemon.server._is_process_alive", return_value=False
             ),
         ):
             daemon._check_pid()  # Should clean up and not raise
             assert not pid_path.exists()
 
     def test_check_pid_alive_raises(
-        self, daemon: MemXDaemon, tmp_path: Path
+        self, daemon: MemorusDaemon, tmp_path: Path
     ) -> None:
         pid_path = tmp_path / "alive.pid"
         pid_path.write_text("12345")
         with (
             patch.object(type(daemon), "pid_path", new=property(lambda s: pid_path)),
             patch(
-                "memx.core.daemon.server._is_process_alive", return_value=True
+                "memorus.core.daemon.server._is_process_alive", return_value=True
             ),
         ):
             with pytest.raises(DaemonError, match="already running"):
                 daemon._check_pid()
 
     def test_check_pid_corrupt_file_cleans_up(
-        self, daemon: MemXDaemon, tmp_path: Path
+        self, daemon: MemorusDaemon, tmp_path: Path
     ) -> None:
         pid_path = tmp_path / "corrupt.pid"
         pid_path.write_text("not_a_number")
@@ -202,12 +202,12 @@ class TestPingCommand:
     """Tests for the ping command."""
 
     @pytest.mark.asyncio
-    async def test_ping_returns_ok(self, daemon: MemXDaemon) -> None:
+    async def test_ping_returns_ok(self, daemon: MemorusDaemon) -> None:
         daemon._start_time = datetime.now()
         req = DaemonRequest(cmd="ping")
         resp = await daemon.handle_request(req)
         assert resp.status == "ok"
-        assert resp.data["version"] == "1.0.0"
+        assert resp.data["version"] == "0.2.1"
         assert resp.data["sessions"] == 0
         assert "pid" in resp.data
 
@@ -216,7 +216,7 @@ class TestRecallCommand:
     """Tests for the recall command."""
 
     @pytest.mark.asyncio
-    async def test_recall_success(self, daemon: MemXDaemon) -> None:
+    async def test_recall_success(self, daemon: MemorusDaemon) -> None:
         mock_memory = MagicMock()
         mock_memory.search.return_value = {
             "results": [{"memory": "test bullet", "score": 0.9}]
@@ -232,7 +232,7 @@ class TestRecallCommand:
         )
 
     @pytest.mark.asyncio
-    async def test_recall_missing_query(self, daemon: MemXDaemon) -> None:
+    async def test_recall_missing_query(self, daemon: MemorusDaemon) -> None:
         daemon._memory = MagicMock()
         req = DaemonRequest(cmd="recall", data={})
         resp = await daemon.handle_request(req)
@@ -240,7 +240,7 @@ class TestRecallCommand:
         assert "query" in (resp.error or "")
 
     @pytest.mark.asyncio
-    async def test_recall_no_memory(self, daemon: MemXDaemon) -> None:
+    async def test_recall_no_memory(self, daemon: MemorusDaemon) -> None:
         daemon._memory = None
         req = DaemonRequest(cmd="recall", data={"query": "test"})
         resp = await daemon.handle_request(req)
@@ -248,7 +248,7 @@ class TestRecallCommand:
         assert "Memory" in (resp.error or "")
 
     @pytest.mark.asyncio
-    async def test_recall_custom_limit(self, daemon: MemXDaemon) -> None:
+    async def test_recall_custom_limit(self, daemon: MemorusDaemon) -> None:
         mock_memory = MagicMock()
         mock_memory.search.return_value = {"results": []}
         daemon._memory = mock_memory
@@ -267,7 +267,7 @@ class TestCurateCommand:
     """Tests for the curate command."""
 
     @pytest.mark.asyncio
-    async def test_curate_success(self, daemon: MemXDaemon) -> None:
+    async def test_curate_success(self, daemon: MemorusDaemon) -> None:
         mock_memory = MagicMock()
         mock_memory.add.return_value = {"results": [], "ace_ingest": {}}
         daemon._memory = mock_memory
@@ -283,7 +283,7 @@ class TestCurateCommand:
         )
 
     @pytest.mark.asyncio
-    async def test_curate_missing_messages(self, daemon: MemXDaemon) -> None:
+    async def test_curate_missing_messages(self, daemon: MemorusDaemon) -> None:
         daemon._memory = MagicMock()
         req = DaemonRequest(cmd="curate", data={})
         resp = await daemon.handle_request(req)
@@ -291,7 +291,7 @@ class TestCurateCommand:
         assert "messages" in (resp.error or "")
 
     @pytest.mark.asyncio
-    async def test_curate_no_memory(self, daemon: MemXDaemon) -> None:
+    async def test_curate_no_memory(self, daemon: MemorusDaemon) -> None:
         daemon._memory = None
         req = DaemonRequest(
             cmd="curate", data={"messages": "test"}
@@ -304,7 +304,7 @@ class TestSessionCommands:
     """Tests for session_register and session_unregister."""
 
     @pytest.mark.asyncio
-    async def test_register_session(self, daemon: MemXDaemon) -> None:
+    async def test_register_session(self, daemon: MemorusDaemon) -> None:
         req = DaemonRequest(
             cmd="session_register", data={"session_id": "sess-abc"}
         )
@@ -314,7 +314,7 @@ class TestSessionCommands:
         assert daemon.session_count == 1
 
     @pytest.mark.asyncio
-    async def test_register_multiple_sessions(self, daemon: MemXDaemon) -> None:
+    async def test_register_multiple_sessions(self, daemon: MemorusDaemon) -> None:
         for sid in ("s1", "s2", "s3"):
             req = DaemonRequest(
                 cmd="session_register", data={"session_id": sid}
@@ -323,14 +323,14 @@ class TestSessionCommands:
         assert daemon.session_count == 3
 
     @pytest.mark.asyncio
-    async def test_register_missing_session_id(self, daemon: MemXDaemon) -> None:
+    async def test_register_missing_session_id(self, daemon: MemorusDaemon) -> None:
         req = DaemonRequest(cmd="session_register", data={})
         resp = await daemon.handle_request(req)
         assert resp.status == "error"
         assert "session_id" in (resp.error or "")
 
     @pytest.mark.asyncio
-    async def test_unregister_session(self, daemon: MemXDaemon) -> None:
+    async def test_unregister_session(self, daemon: MemorusDaemon) -> None:
         daemon._sessions["sess-abc"] = datetime.now()
         req = DaemonRequest(
             cmd="session_unregister", data={"session_id": "sess-abc"}
@@ -340,7 +340,7 @@ class TestSessionCommands:
         assert "sess-abc" not in daemon._sessions
 
     @pytest.mark.asyncio
-    async def test_unregister_unknown_session(self, daemon: MemXDaemon) -> None:
+    async def test_unregister_unknown_session(self, daemon: MemorusDaemon) -> None:
         req = DaemonRequest(
             cmd="session_unregister", data={"session_id": "nonexistent"}
         )
@@ -348,13 +348,13 @@ class TestSessionCommands:
         assert resp.status == "ok"  # Not an error, idempotent
 
     @pytest.mark.asyncio
-    async def test_unregister_missing_session_id(self, daemon: MemXDaemon) -> None:
+    async def test_unregister_missing_session_id(self, daemon: MemorusDaemon) -> None:
         req = DaemonRequest(cmd="session_unregister", data={})
         resp = await daemon.handle_request(req)
         assert resp.status == "error"
 
     @pytest.mark.asyncio
-    async def test_register_cancels_idle_timer(self, daemon: MemXDaemon) -> None:
+    async def test_register_cancels_idle_timer(self, daemon: MemorusDaemon) -> None:
         # Simulate an idle timer running
         daemon._idle_timer = asyncio.get_event_loop().create_task(
             asyncio.sleep(999)
@@ -367,7 +367,7 @@ class TestSessionCommands:
 
     @pytest.mark.asyncio
     async def test_unregister_last_session_starts_idle_timer(
-        self, daemon: MemXDaemon
+        self, daemon: MemorusDaemon
     ) -> None:
         daemon._sessions["s1"] = datetime.now()
         req = DaemonRequest(
@@ -380,7 +380,7 @@ class TestSessionCommands:
 
     @pytest.mark.asyncio
     async def test_unregister_not_last_no_idle_timer(
-        self, daemon: MemXDaemon
+        self, daemon: MemorusDaemon
     ) -> None:
         daemon._sessions["s1"] = datetime.now()
         daemon._sessions["s2"] = datetime.now()
@@ -396,7 +396,7 @@ class TestShutdownCommand:
     """Tests for the shutdown command."""
 
     @pytest.mark.asyncio
-    async def test_shutdown_sets_event(self, daemon: MemXDaemon) -> None:
+    async def test_shutdown_sets_event(self, daemon: MemorusDaemon) -> None:
         daemon._shutdown_event = asyncio.Event()
         req = DaemonRequest(cmd="shutdown")
         resp = await daemon.handle_request(req)
@@ -408,7 +408,7 @@ class TestUnknownCommand:
     """Tests for unknown commands."""
 
     @pytest.mark.asyncio
-    async def test_unknown_command(self, daemon: MemXDaemon) -> None:
+    async def test_unknown_command(self, daemon: MemorusDaemon) -> None:
         req = DaemonRequest(cmd="nonexistent")
         resp = await daemon.handle_request(req)
         assert resp.status == "error"
@@ -425,7 +425,7 @@ class TestIdleTimeout:
 
     @pytest.mark.asyncio
     async def test_idle_countdown_triggers_shutdown(
-        self, daemon: MemXDaemon
+        self, daemon: MemorusDaemon
     ) -> None:
         daemon._shutdown_event = asyncio.Event()
         # Use very short timeout
@@ -437,7 +437,7 @@ class TestIdleTimeout:
         assert daemon._shutdown_event.is_set()
 
     @pytest.mark.asyncio
-    async def test_cancel_idle_timer(self, daemon: MemXDaemon) -> None:
+    async def test_cancel_idle_timer(self, daemon: MemorusDaemon) -> None:
         daemon._shutdown_event = asyncio.Event()
         daemon._idle_timer = asyncio.get_event_loop().create_task(
             asyncio.sleep(999)
@@ -446,7 +446,7 @@ class TestIdleTimeout:
         assert daemon._idle_timer is None
 
     @pytest.mark.asyncio
-    async def test_cancel_idle_timer_when_none(self, daemon: MemXDaemon) -> None:
+    async def test_cancel_idle_timer_when_none(self, daemon: MemorusDaemon) -> None:
         daemon._idle_timer = None
         daemon._cancel_idle_timer()  # Should not raise
 
@@ -461,7 +461,7 @@ class TestErrorHandling:
 
     @pytest.mark.asyncio
     async def test_recall_memory_exception_returns_error(
-        self, daemon: MemXDaemon
+        self, daemon: MemorusDaemon
     ) -> None:
         mock_memory = MagicMock()
         mock_memory.search.side_effect = RuntimeError("DB connection lost")
@@ -474,7 +474,7 @@ class TestErrorHandling:
 
     @pytest.mark.asyncio
     async def test_curate_memory_exception_returns_error(
-        self, daemon: MemXDaemon
+        self, daemon: MemorusDaemon
     ) -> None:
         mock_memory = MagicMock()
         mock_memory.add.side_effect = RuntimeError("Write failed")
@@ -494,14 +494,14 @@ class TestErrorHandling:
 class TestDaemonProperties:
     """Tests for daemon properties."""
 
-    def test_is_running_initially_false(self, daemon: MemXDaemon) -> None:
+    def test_is_running_initially_false(self, daemon: MemorusDaemon) -> None:
         assert daemon.is_running is False
 
-    def test_session_count_empty(self, daemon: MemXDaemon) -> None:
+    def test_session_count_empty(self, daemon: MemorusDaemon) -> None:
         assert daemon.session_count == 0
 
-    def test_ipc_address_windows(self, daemon: MemXDaemon) -> None:
-        with patch("memx.core.daemon.server.sys") as mock_sys:
+    def test_ipc_address_windows(self, daemon: MemorusDaemon) -> None:
+        with patch("memorus.core.daemon.server.sys") as mock_sys:
             mock_sys.platform = "win32"
             daemon._config = DaemonConfig()
             addr = daemon.ipc_address
@@ -509,11 +509,11 @@ class TestDaemonProperties:
 
     def test_ipc_address_custom(self) -> None:
         config = DaemonConfig(socket_path="/custom/path.sock")
-        d = MemXDaemon(config=config)
+        d = MemorusDaemon(config=config)
         assert d.ipc_address == "/custom/path.sock"
 
     def test_default_config(self) -> None:
-        d = MemXDaemon()
+        d = MemorusDaemon()
         assert d._config.idle_timeout_seconds == 300
         assert d._config.enabled is False
 
@@ -528,49 +528,49 @@ class TestClassHelpers:
 
     def test_is_daemon_running_no_pid_file(self, tmp_path: Path) -> None:
         with patch(
-            "memx.core.daemon.server.PID_PATH", tmp_path / "no.pid"
+            "memorus.core.daemon.server.PID_PATH", tmp_path / "no.pid"
         ):
-            assert MemXDaemon.is_daemon_running() is False
+            assert MemorusDaemon.is_daemon_running() is False
 
     def test_is_daemon_running_stale_pid(self, tmp_path: Path) -> None:
         pid_path = tmp_path / "daemon.pid"
         pid_path.write_text("99999999")
         with (
-            patch("memx.core.daemon.server.PID_PATH", pid_path),
+            patch("memorus.core.daemon.server.PID_PATH", pid_path),
             patch(
-                "memx.core.daemon.server._is_process_alive", return_value=False
+                "memorus.core.daemon.server._is_process_alive", return_value=False
             ),
         ):
-            assert MemXDaemon.is_daemon_running() is False
+            assert MemorusDaemon.is_daemon_running() is False
 
     def test_is_daemon_running_alive_pid(self, tmp_path: Path) -> None:
         pid_path = tmp_path / "daemon.pid"
         pid_path.write_text("12345")
         with (
-            patch("memx.core.daemon.server.PID_PATH", pid_path),
+            patch("memorus.core.daemon.server.PID_PATH", pid_path),
             patch(
-                "memx.core.daemon.server._is_process_alive", return_value=True
+                "memorus.core.daemon.server._is_process_alive", return_value=True
             ),
         ):
-            assert MemXDaemon.is_daemon_running() is True
+            assert MemorusDaemon.is_daemon_running() is True
 
     def test_read_pid_no_file(self, tmp_path: Path) -> None:
         with patch(
-            "memx.core.daemon.server.PID_PATH", tmp_path / "no.pid"
+            "memorus.core.daemon.server.PID_PATH", tmp_path / "no.pid"
         ):
-            assert MemXDaemon.read_pid() is None
+            assert MemorusDaemon.read_pid() is None
 
     def test_read_pid_valid(self, tmp_path: Path) -> None:
         pid_path = tmp_path / "daemon.pid"
         pid_path.write_text("42")
-        with patch("memx.core.daemon.server.PID_PATH", pid_path):
-            assert MemXDaemon.read_pid() == 42
+        with patch("memorus.core.daemon.server.PID_PATH", pid_path):
+            assert MemorusDaemon.read_pid() == 42
 
     def test_read_pid_corrupt(self, tmp_path: Path) -> None:
         pid_path = tmp_path / "daemon.pid"
         pid_path.write_text("not_a_number")
-        with patch("memx.core.daemon.server.PID_PATH", pid_path):
-            assert MemXDaemon.read_pid() is None
+        with patch("memorus.core.daemon.server.PID_PATH", pid_path):
+            assert MemorusDaemon.read_pid() is None
 
 
 # ---------------------------------------------------------------------------
@@ -583,7 +583,7 @@ class TestLifecycle:
 
     @pytest.mark.asyncio
     async def test_stop_removes_pid_and_clears_sessions(
-        self, daemon: MemXDaemon, tmp_path: Path
+        self, daemon: MemorusDaemon, tmp_path: Path
     ) -> None:
         pid_path = tmp_path / "daemon.pid"
         pid_path.write_text(str(os.getpid()))
@@ -603,7 +603,7 @@ class TestLifecycle:
 
     @pytest.mark.asyncio
     async def test_stop_when_not_running_is_safe(
-        self, daemon: MemXDaemon, tmp_path: Path
+        self, daemon: MemorusDaemon, tmp_path: Path
     ) -> None:
         pid_path = tmp_path / "daemon.pid"
         with patch.object(type(daemon), "pid_path", new=property(lambda s: pid_path)):
@@ -611,10 +611,10 @@ class TestLifecycle:
 
     @pytest.mark.asyncio
     async def test_init_memory_failure_raises_daemon_error(
-        self, daemon: MemXDaemon
+        self, daemon: MemorusDaemon
     ) -> None:
         with patch(
-            "memx.core.memory.Memory",
+            "memorus.core.memory.Memory",
             side_effect=RuntimeError("init boom"),
         ):
             with pytest.raises(DaemonError, match="initialization failed"):
@@ -622,7 +622,7 @@ class TestLifecycle:
 
     @pytest.mark.asyncio
     async def test_start_creates_pid_and_starts_server(
-        self, daemon: MemXDaemon, tmp_path: Path
+        self, daemon: MemorusDaemon, tmp_path: Path
     ) -> None:
         """Test that start() creates PID, inits memory, opens IPC, then stops on event."""
         pid_path = tmp_path / "daemon.pid"
@@ -654,7 +654,7 @@ class TestIPCConnectionHandler:
     """Tests for the _handle_connection method."""
 
     @pytest.mark.asyncio
-    async def test_handle_valid_request(self, daemon: MemXDaemon) -> None:
+    async def test_handle_valid_request(self, daemon: MemorusDaemon) -> None:
         daemon._start_time = datetime.now()
         reader = AsyncMock(spec=asyncio.StreamReader)
         writer = AsyncMock(spec=asyncio.StreamWriter)
@@ -672,10 +672,10 @@ class TestIPCConnectionHandler:
         raw_resp = writer.write.call_args[0][0]
         resp = json.loads(raw_resp.decode("utf-8"))
         assert resp["status"] == "ok"
-        assert resp["data"]["version"] == "1.0.0"
+        assert resp["data"]["version"] == "0.2.1"
 
     @pytest.mark.asyncio
-    async def test_handle_invalid_json(self, daemon: MemXDaemon) -> None:
+    async def test_handle_invalid_json(self, daemon: MemorusDaemon) -> None:
         reader = AsyncMock(spec=asyncio.StreamReader)
         writer = AsyncMock(spec=asyncio.StreamWriter)
 
@@ -694,7 +694,7 @@ class TestIPCConnectionHandler:
         assert "Invalid request" in resp["error"]
 
     @pytest.mark.asyncio
-    async def test_handle_empty_read(self, daemon: MemXDaemon) -> None:
+    async def test_handle_empty_read(self, daemon: MemorusDaemon) -> None:
         reader = AsyncMock(spec=asyncio.StreamReader)
         writer = AsyncMock(spec=asyncio.StreamWriter)
 
@@ -733,7 +733,7 @@ class TestRoundTrip:
     """End-to-end command round-trip tests."""
 
     @pytest.mark.asyncio
-    async def test_session_lifecycle(self, daemon: MemXDaemon) -> None:
+    async def test_session_lifecycle(self, daemon: MemorusDaemon) -> None:
         """Register -> ping -> unregister -> verify session count transitions."""
         daemon._start_time = datetime.now()
 
@@ -779,7 +779,7 @@ class TestRoundTrip:
             daemon._idle_timer.cancel()
 
     @pytest.mark.asyncio
-    async def test_recall_then_curate(self, daemon: MemXDaemon) -> None:
+    async def test_recall_then_curate(self, daemon: MemorusDaemon) -> None:
         """Recall and curate in sequence."""
         mock_memory = MagicMock()
         mock_memory.search.return_value = {"results": []}

@@ -1,4 +1,4 @@
-"""Tests for memx.ext.agent_tools."""
+"""Tests for memorus.ext.agent_tools."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from memx.ext.agent_tools import get_langchain_tools, get_openai_tools
+from memorus.ext.agent_tools import get_langchain_tools, get_openai_tools
 
 
 class TestGetOpenaiTools:
