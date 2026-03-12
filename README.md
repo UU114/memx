@@ -1,3 +1,5 @@
+本项目停止更新，请移步 https://github.com/UU114/memorus
+Upgrade stopped for this repository, please visit https://github.com/UU114/memorus
 # Memorus — Intelligent Memory for AI Agents
 
 > mem0 fork + ACE intelligent layer: auto-learn, auto-forget, auto-recall
